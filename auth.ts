@@ -66,7 +66,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.sub;
         session.user.role = (token.role as "user" | "admin") ?? "user";
         session.user.accountType =
-          (token.accountType as "athlete" | "academy") ?? "athlete";
+          (token.accountType as "athlete" | "academy" | "professor") ??
+          "athlete";
       }
       return session;
     },
@@ -79,5 +80,6 @@ export function homePathForUser(user: {
 }) {
   if (user.role === "admin") return "/admin";
   if (user.accountType === "academy") return "/painel/academia";
+  if (user.accountType === "professor") return "/painel/professor";
   return "/painel";
 }

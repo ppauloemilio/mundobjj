@@ -14,6 +14,7 @@ import {
   profiles,
   users,
 } from "@/db/schema";
+import { saveAthleteProfessorLink } from "@/lib/athlete-professor";
 import {
   readLocationFromForm,
   saveLocationSuggestions,
@@ -39,7 +40,7 @@ async function createAccount(input: {
   name: string;
   email: string;
   password: string;
-  accountType: "athlete" | "academy";
+  accountType: "athlete" | "academy" | "professor";
 }) {
   const db = requireDb();
   const email = input.email.toLowerCase();
@@ -138,6 +139,18 @@ export async function registerAthleteAction(
         status: "active",
         startedAt: new Date().toISOString().slice(0, 10),
       });
+
+      const professorProfileId = String(
+        formData.get("professorProfileId") || "",
+      );
+      if (professorProfileId) {
+        const linked = await saveAthleteProfessorLink(db, {
+          profileId: created.profileId,
+          academyId: academy.id,
+          professorProfileId,
+        });
+        if (linked.error) return { error: linked.error };
+      }
     }
   }
 
@@ -165,17 +178,13 @@ export async function registerAcademyAction(
     .extend({
       academyName: z.string().trim().min(2, "Informe o nome da academia."),
       whatsapp: z.string().trim().optional(),
-      address: z.string().trim().min(5, "Informe o endereço."),
-      professorName: z.string().trim().optional(),
     })
     .safeParse({
-      name: formData.get("name"),
+      name: formData.get("academyName"),
       email: formData.get("email"),
       password: formData.get("password"),
       academyName: formData.get("academyName"),
       whatsapp: formData.get("whatsapp") || "",
-      address: formData.get("address"),
-      professorName: formData.get("professorName") || "",
     });
 
   if (!parsed.success) {
@@ -183,26 +192,21 @@ export async function registerAcademyAction(
   }
 
   const created = await createAccount({
-    name: parsed.data.name,
+    name: parsed.data.academyName,
     email: parsed.data.email,
     password: parsed.data.password,
     accountType: "academy",
   });
   if ("error" in created) return created;
 
-  const location = readLocationFromForm(formData);
-  const cityId = await saveLocationSuggestions(location, created.userId);
   const db = requireDb();
 
   await db.insert(academies).values({
     slug: uniqueSlug(parsed.data.academyName),
     name: parsed.data.academyName,
-    professorName: parsed.data.professorName || parsed.data.name,
     whatsapp: parsed.data.whatsapp || null,
-    address: parsed.data.address,
-    cityId,
     ownerId: created.userId,
-    acceptsVisitor: true,
+    acceptsVisitor: false,
   });
 
   try {
@@ -210,6 +214,53 @@ export async function registerAcademyAction(
       email: created.email,
       password: parsed.data.password,
       redirectTo: "/painel/academia",
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { error: "Conta criada, mas o login automático falhou. Entre de novo." };
+    }
+    throw error;
+  }
+
+  return {};
+}
+
+export async function registerProfessorAction(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const parsed = baseSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const created = await createAccount({
+    ...parsed.data,
+    accountType: "professor",
+  });
+  if ("error" in created) return created;
+
+  const location = readLocationFromForm(formData);
+  const cityId = await saveLocationSuggestions(location, created.userId);
+  const db = requireDb();
+
+  if (cityId) {
+    await db
+      .update(profiles)
+      .set({ cityId })
+      .where(eq(profiles.id, created.profileId));
+  }
+
+  try {
+    await signIn("credentials", {
+      email: created.email,
+      password: parsed.data.password,
+      redirectTo: "/painel/professor",
     });
   } catch (error) {
     if (error instanceof AuthError) {

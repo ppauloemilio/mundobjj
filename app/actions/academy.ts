@@ -1,11 +1,11 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireDb } from "@/db";
-import { academies, classSchedules, cities, states } from "@/db/schema";
+import { academies, classSchedules, cities, profiles, states } from "@/db/schema";
 import { geocodeAddress } from "@/lib/geocode";
 import {
   readLocationFromForm,
@@ -141,7 +141,22 @@ export async function saveAcademyAction(
   const ends = formData.getAll("scheduleEndsAt");
   const kinds = formData.getAll("scheduleKind");
   const levels = formData.getAll("scheduleLevel");
-  const professors = formData.getAll("scheduleProfessor");
+  const professorIds = formData.getAll("scheduleProfessorProfileId");
+
+  const nameByProfileId = new Map<string, string>();
+  const parsedProfessorIds = professorIds
+    .map((value) => String(value || "").trim())
+    .filter((id) => id.length > 0);
+  if (parsedProfessorIds.length) {
+    const uniqueIds = [...new Set(parsedProfessorIds)];
+    const professorRows = await db
+      .select({ id: profiles.id, name: profiles.name })
+      .from(profiles)
+      .where(inArray(profiles.id, uniqueIds));
+    for (const row of professorRows) {
+      nameByProfileId.set(row.id, row.name);
+    }
+  }
 
   const rows = weekdays
     .map((weekday, index) => {
@@ -149,6 +164,11 @@ export async function saveAcademyAction(
       const endsAt = String(ends[index] || "");
       const kind = String(kinds[index] || "");
       if (!startsAt || !endsAt || !kind) return null;
+      const professorProfileId =
+        String(professorIds[index] || "").trim() || null;
+      const professorName = professorProfileId
+        ? nameByProfileId.get(professorProfileId) ?? null
+        : null;
       return {
         academyId,
         weekday: Number(weekday),
@@ -162,7 +182,8 @@ export async function saveAcademyAction(
           | "kids"
           | "open_mat",
         level: String(levels[index] || "") || null,
-        professorName: String(professors[index] || "") || null,
+        professorProfileId,
+        professorName,
       };
     })
     .filter((row): row is NonNullable<typeof row> => Boolean(row));

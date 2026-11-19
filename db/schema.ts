@@ -59,7 +59,11 @@ export const sponsorPlacementEnum = pgEnum("sponsor_placement", [
 
 export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
 
-export const accountTypeEnum = pgEnum("account_type", ["athlete", "academy"]);
+export const accountTypeEnum = pgEnum("account_type", [
+  "athlete",
+  "academy",
+  "professor",
+]);
 
 export const suggestionStatusEnum = pgEnum("suggestion_status", [
   "pending",
@@ -233,8 +237,59 @@ export const classSchedules = pgTable(
     kind: classKindEnum("kind").notNull(),
     level: text("level"),
     professorName: text("professor_name"),
+    professorProfileId: uuid("professor_profile_id").references(
+      () => profiles.id,
+      { onDelete: "set null" },
+    ),
   },
   (table) => [index("class_schedules_academy_idx").on(table.academyId)],
+);
+
+export const academyProfessors = pgTable(
+  "academy_professors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    academyId: uuid("academy_id")
+      .notNull()
+      .references(() => academies.id, { onDelete: "cascade" }),
+    professorProfileId: uuid("professor_profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    status: membershipStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("academy_professors_academy_professor_idx").on(
+      table.academyId,
+      table.professorProfileId,
+    ),
+    index("academy_professors_academy_idx").on(table.academyId),
+  ],
+);
+
+export const athleteProfessors = pgTable(
+  "athlete_professors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    professorProfileId: uuid("professor_profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    academyId: uuid("academy_id")
+      .notNull()
+      .references(() => academies.id, { onDelete: "cascade" }),
+    status: membershipStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("athlete_professors_profile_academy_idx").on(
+      table.profileId,
+      table.academyId,
+    ),
+    index("athlete_professors_profile_idx").on(table.profileId),
+  ],
 );
 
 export const memberships = pgTable(

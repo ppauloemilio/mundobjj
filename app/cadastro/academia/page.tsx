@@ -10,7 +10,7 @@ export default function CadastroAcademiaPage() {
           Conta de academia
         </h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          Cadastre a academia para aparecer na busca e receber alunos.
+          Conta rápida; complete endereço, professores e grade no painel.
         </p>
       </div>
       <AcademyRegisterForm />

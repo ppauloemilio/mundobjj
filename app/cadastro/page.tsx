@@ -11,7 +11,7 @@ export default function CadastroPage() {
           Escolha o tipo de conta. Cada uma tem um formulário próprio.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Link
           href="/cadastro/atleta"
           className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-6 transition hover:border-[var(--accent)]"
@@ -22,12 +22,21 @@ export default function CadastroPage() {
           </p>
         </Link>
         <Link
+          href="/cadastro/professor"
+          className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-6 transition hover:border-[var(--accent)]"
+        >
+          <h2 className="text-xl font-semibold">Sou professor</h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Perfil profissional e vínculo com academias onde você ensina.
+          </p>
+        </Link>
+        <Link
           href="/cadastro/academia"
           className="rounded-3xl border border-[var(--line)] bg-[var(--card)] p-6 transition hover:border-[var(--accent)]"
         >
           <h2 className="text-xl font-semibold">Sou academia</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Cadastre a academia, horários e veja quem treina com você.
+            Conta rápida; complete endereço e grade no painel.
           </p>
         </Link>
       </div>

@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { and, asc, eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { AcademyForm } from "@/components/academy-form";
+import { AcademyProfessorPanel } from "@/components/academy-professor-panel";
 import { requireDb } from "@/db";
-import { classSchedules, memberships, profiles } from "@/db/schema";
+import {
+  academyProfessors,
+  classSchedules,
+  memberships,
+  profiles,
+} from "@/db/schema";
 import { getOwnedAcademies, requireUser } from "@/lib/session";
 
 export const instant = false;
@@ -13,6 +20,9 @@ export default async function PainelAcademiaPage({
   searchParams: Promise<{ saved?: string }>;
 }) {
   const user = await requireUser();
+  if (user.accountType !== "academy" && user.role !== "admin") {
+    redirect("/painel");
+  }
   const owned = await getOwnedAcademies(user.id);
   const academy = owned[0] ?? null;
   const params = await searchParams;
@@ -24,6 +34,23 @@ export default async function PainelAcademiaPage({
         .from(classSchedules)
         .where(eq(classSchedules.academyId, academy.id))
     : [];
+
+  const professorLinks = academy
+    ? await db
+        .select({
+          linkId: academyProfessors.id,
+          profileId: profiles.id,
+          name: profiles.name,
+          slug: profiles.slug,
+          status: academyProfessors.status,
+        })
+        .from(academyProfessors)
+        .innerJoin(profiles, eq(academyProfessors.professorProfileId, profiles.id))
+        .where(eq(academyProfessors.academyId, academy.id))
+        .orderBy(asc(profiles.name))
+    : [];
+
+  const activeProfessors = professorLinks.filter((row) => row.status === "active");
 
   const members = academy
     ? await db
@@ -68,6 +95,10 @@ export default async function PainelAcademiaPage({
           ) : null}
         </div>
         <AcademyForm
+          professors={activeProfessors.map((row) => ({
+            id: row.profileId,
+            name: row.name,
+          }))}
           academy={
             academy
               ? {
@@ -88,13 +119,26 @@ export default async function PainelAcademiaPage({
                     endsAt: schedule.endsAt.slice(0, 5),
                     kind: schedule.kind,
                     level: schedule.level ?? "",
-                    professorName: schedule.professorName ?? "",
+                    professorProfileId: schedule.professorProfileId ?? "",
                   })),
                 }
               : undefined
           }
         />
       </div>
+
+      {academy ? (
+        <AcademyProfessorPanel
+          academyId={academy.id}
+          professors={professorLinks.map((row) => ({
+            linkId: row.linkId,
+            profileId: row.profileId,
+            name: row.name,
+            slug: row.slug,
+            status: row.status,
+          }))}
+        />
+      ) : null}
 
       {academy ? (
         <section className="flex flex-col gap-3">

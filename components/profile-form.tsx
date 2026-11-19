@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   updateProfileAction,
   type ProfileFormState,
 } from "@/app/actions/profile";
 import { AcademySelect } from "@/components/academy-select";
 import { LocationFields } from "@/components/location-fields";
+import { ProfessorSelect } from "@/components/professor-select";
 
 const initial: ProfileFormState = {};
 
@@ -27,6 +28,7 @@ type ProfileValues = {
   slug: string;
   cityId: string | null;
   academyId: string | null;
+  professorProfileId: string | null;
   belt: string;
   stripes: number;
   style: string;
@@ -40,15 +42,33 @@ type ProfileValues = {
   showEmail: boolean;
 };
 
-export function ProfileForm({ profile }: { profile: ProfileValues }) {
+export function ProfileForm({
+  profile,
+  hideAcademyFields = false,
+}: {
+  profile: ProfileValues;
+  hideAcademyFields?: boolean;
+}) {
   const [state, action, pending] = useActionState(updateProfileAction, initial);
+  const [academyId, setAcademyId] = useState(profile.academyId ?? "");
 
   return (
     <form action={action} className="flex flex-col gap-4">
       <Field label="Nome" name="name" defaultValue={profile.name} required />
       <Field label="Link do perfil" name="slug" defaultValue={profile.slug} required />
       <LocationFields initialCityId={profile.cityId ?? ""} />
-      <AcademySelect initialAcademyId={profile.academyId ?? ""} />
+      {hideAcademyFields ? null : (
+        <>
+          <AcademySelect
+            initialAcademyId={profile.academyId ?? ""}
+            onAcademyIdChange={setAcademyId}
+          />
+          <ProfessorSelect
+            academyId={academyId}
+            initialProfessorId={profile.professorProfileId ?? ""}
+          />
+        </>
+      )}
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm">
           Faixa

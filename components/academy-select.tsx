@@ -9,9 +9,11 @@ const OTHER = "__other__";
 export function AcademySelect({
   initialAcademyId = "",
   required = false,
+  onAcademyIdChange,
 }: {
   initialAcademyId?: string;
   required?: boolean;
+  onAcademyIdChange?: (academyId: string) => void;
 }) {
   const [academies, setAcademies] = useState<AcademyOption[]>([]);
   const [value, setValue] = useState(initialAcademyId || "");
@@ -34,7 +36,11 @@ export function AcademySelect({
           name={isOther ? undefined : "academyId"}
           value={value}
           required={required}
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => {
+            const next = event.target.value;
+            setValue(next);
+            onAcademyIdChange?.(next === OTHER ? "" : next);
+          }}
           className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
         >
           <option value="">Selecione</option>

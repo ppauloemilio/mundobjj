@@ -4,7 +4,13 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireDb } from "@/db";
-import { academies, academySuggestions, memberships, profiles } from "@/db/schema";
+import {
+  academies,
+  academySuggestions,
+  memberships,
+  profiles,
+} from "@/db/schema";
+import { saveAthleteProfessorLink } from "@/lib/athlete-professor";
 import {
   readLocationFromForm,
   saveLocationSuggestions,
@@ -39,6 +45,7 @@ const profileSchema = z.object({
   academyMode: z.enum(["list", "other"]).optional(),
   academyId: z.string().uuid().optional().or(z.literal("")),
   suggestedAcademyName: z.string().trim().optional(),
+  professorProfileId: z.string().uuid().optional().or(z.literal("")),
 });
 
 export type ProfileFormState = {
@@ -68,6 +75,7 @@ export async function updateProfileAction(
     academyMode: formData.get("academyMode") || "list",
     academyId: formData.get("academyId") || "",
     suggestedAcademyName: formData.get("suggestedAcademyName") || "",
+    professorProfileId: formData.get("professorProfileId") || "",
   });
 
   if (!parsed.success) {
@@ -150,6 +158,15 @@ export async function updateProfileAction(
         status: "active",
         startedAt: new Date().toISOString().slice(0, 10),
       });
+
+      if (parsed.data.professorProfileId) {
+        const linked = await saveAthleteProfessorLink(db, {
+          profileId: profile.id,
+          academyId: academy.id,
+          professorProfileId: parsed.data.professorProfileId,
+        });
+        if (linked.error) return { error: linked.error };
+      }
     }
   }
 

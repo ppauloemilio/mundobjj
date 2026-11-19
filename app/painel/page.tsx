@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/profile-form";
 import { requireDb } from "@/db";
-import { memberships } from "@/db/schema";
+import { athleteProfessors, memberships } from "@/db/schema";
 import { getProfileForUser, requireUser } from "@/lib/session";
 
 export const instant = false;
 
 export default async function PainelPage() {
   const user = await requireUser();
+  if (user.accountType === "professor") redirect("/painel/professor");
+  if (user.accountType === "academy") redirect("/painel/academia");
   const profile = await getProfileForUser(user.id);
 
   if (!profile) {
@@ -27,6 +30,20 @@ export default async function PainelPage() {
     )
     .limit(1);
 
+  const [athleteProfessor] = membership
+    ? await db
+        .select({ professorProfileId: athleteProfessors.professorProfileId })
+        .from(athleteProfessors)
+        .where(
+          and(
+            eq(athleteProfessors.profileId, profile.id),
+            eq(athleteProfessors.academyId, membership.academyId),
+            eq(athleteProfessors.status, "active"),
+          ),
+        )
+        .limit(1)
+    : [undefined];
+
   return (
     <section className="flex flex-col gap-4">
       <div>
@@ -44,6 +61,7 @@ export default async function PainelPage() {
           slug: profile.slug,
           cityId: profile.cityId,
           academyId: membership?.academyId ?? null,
+          professorProfileId: athleteProfessor?.professorProfileId ?? null,
           belt: profile.belt,
           stripes: profile.stripes,
           style: profile.style,

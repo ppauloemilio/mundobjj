@@ -26,8 +26,10 @@ type ScheduleRow = {
   endsAt: string;
   kind: string;
   level: string;
-  professorName: string;
+  professorProfileId: string;
 };
+
+type ProfessorOption = { id: string; name: string };
 
 type AcademyValues = {
   id?: string;
@@ -44,7 +46,13 @@ type AcademyValues = {
   schedules: ScheduleRow[];
 };
 
-export function AcademyForm({ academy }: { academy?: AcademyValues }) {
+export function AcademyForm({
+  academy,
+  professors = [],
+}: {
+  academy?: AcademyValues;
+  professors?: ProfessorOption[];
+}) {
   const [state, action, pending] = useActionState(saveAcademyAction, initial);
   const [schedules, setSchedules] = useState<ScheduleRow[]>(
     academy?.schedules.length
@@ -56,7 +64,7 @@ export function AcademyForm({ academy }: { academy?: AcademyValues }) {
             endsAt: "20:30",
             kind: "gi",
             level: "Todas as faixas",
-            professorName: "",
+            professorProfileId: "",
           },
         ],
   );
@@ -70,11 +78,29 @@ export function AcademyForm({ academy }: { academy?: AcademyValues }) {
         name="affiliation"
         defaultValue={academy?.affiliation ?? ""}
       />
-      <Field
-        label="Professor responsável"
-        name="professorName"
-        defaultValue={academy?.professorName ?? ""}
-      />
+      {professors.length ? (
+        <label className="flex flex-col gap-1 text-sm">
+          Professor responsável (legado)
+          <select
+            name="professorName"
+            defaultValue={academy?.professorName ?? ""}
+            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+          >
+            <option value="">Nenhum</option>
+            {professors.map((professor) => (
+              <option key={professor.id} value={professor.name}>
+                {professor.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <Field
+          label="Professor responsável"
+          name="professorName"
+          defaultValue={academy?.professorName ?? ""}
+        />
+      )}
       <Field label="WhatsApp" name="whatsapp" defaultValue={academy?.whatsapp ?? ""} />
       <Field
         label="Endereço"
@@ -125,7 +151,7 @@ export function AcademyForm({ academy }: { academy?: AcademyValues }) {
                   endsAt: "20:30",
                   kind: "gi",
                   level: "",
-                  professorName: "",
+                  professorProfileId: "",
                 },
               ])
             }
@@ -237,21 +263,39 @@ export function AcademyForm({ academy }: { academy?: AcademyValues }) {
                 placeholder="Nível"
                 className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3 sm:col-span-1"
               />
-              <input
-                name="scheduleProfessor"
-                value={schedule.professorName}
-                onChange={(event) =>
-                  setSchedules((current) =>
-                    current.map((row, rowIndex) =>
-                      rowIndex === index
-                        ? { ...row, professorName: event.target.value }
-                        : row,
-                    ),
-                  )
-                }
-                placeholder="Professor da aula"
-                className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-              />
+              {professors.length ? (
+                <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+                  Professor da aula
+                  <select
+                    name="scheduleProfessorProfileId"
+                    value={schedule.professorProfileId}
+                    onChange={(event) =>
+                      setSchedules((current) =>
+                        current.map((row, rowIndex) =>
+                          rowIndex === index
+                            ? {
+                                ...row,
+                                professorProfileId: event.target.value,
+                              }
+                            : row,
+                        ),
+                      )
+                    }
+                    className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+                  >
+                    <option value="">Selecione</option>
+                    {professors.map((professor) => (
+                      <option key={professor.id} value={professor.id}>
+                        {professor.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <p className="text-sm text-[var(--muted)] sm:col-span-2">
+                  Vincule professores abaixo para escolher na grade.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() =>
