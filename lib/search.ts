@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   academies,
@@ -83,7 +83,7 @@ export async function searchAcademies(filter: PlaceFilter): Promise<AcademyResul
       ? distanceSql(filter.lat, filter.lng, academies.lat, academies.lng)
       : sql<number | null>`null`;
 
-  const conditions = [];
+  const conditions = [isNull(academies.blockedAt)];
   if (filter.cityId) conditions.push(eq(academies.cityId, filter.cityId));
   if (filter.lat != null && filter.lng != null) {
     const radius = filter.radiusKm ?? 10;

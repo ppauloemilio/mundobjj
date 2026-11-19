@@ -36,7 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .where(eq(users.email, email))
           .limit(1);
 
-        if (!user?.passwordHash) return null;
+        if (!user?.passwordHash || user.blockedAt) return null;
 
         const valid = await compare(parsed.data.password, user.passwordHash);
         if (!valid) return null;
@@ -46,18 +46,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           image: user.image,
+          role: user.role,
         };
       },
     }),
   ],
   callbacks: {
     jwt({ token, user }) {
-      if (user?.id) token.sub = user.id;
+      if (user?.id) {
+        token.sub = user.id;
+        token.role = (user as { role?: "user" | "admin" }).role ?? "user";
+      }
       return token;
     },
     session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
+        session.user.role = (token.role as "user" | "admin") ?? "user";
       }
       return session;
     },

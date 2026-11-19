@@ -24,6 +24,7 @@
 .DS_Store
 *.pem
 .neon-ca.pem
+.admin-credentials.local
 
 # debug
 npm-debug.log*

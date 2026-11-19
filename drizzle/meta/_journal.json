@@ -15,6 +15,13 @@
       "when": 1795109507464,
       "tag": "0001_naive_hellfire_club",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795110178133,
+      "tag": "0002_nostalgic_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }

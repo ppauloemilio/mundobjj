@@ -11,6 +11,11 @@ async function AuthLinks() {
   if (session?.user) {
     return (
       <div className="flex items-center gap-3">
+        {session.user.role === "admin" ? (
+          <Link href="/admin" className="text-sm font-medium hover:underline">
+            Admin
+          </Link>
+        ) : null}
         <Link href="/painel" className="text-sm font-medium hover:underline">
           Painel
         </Link>

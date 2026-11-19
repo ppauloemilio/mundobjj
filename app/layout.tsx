@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
     "Encontre academias de Jiu-Jitsu por cidade ou perto de você. Veja professor, horários e lojas da modalidade.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="pt-BR"

@@ -57,6 +57,8 @@ export const sponsorPlacementEnum = pgEnum("sponsor_placement", [
   "vitrine",
 ]);
 
+export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
+
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -66,6 +68,8 @@ export const users = pgTable("user", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
   passwordHash: text("password_hash"),
+  role: userRoleEnum("role").notNull().default("user"),
+  blockedAt: timestamp("blocked_at", { mode: "date" }),
 });
 
 export const accounts = pgTable(
@@ -192,6 +196,7 @@ export const academies = pgTable(
     dropInPrice: numeric("drop_in_price", { precision: 10, scale: 2 }),
     visitorNotes: text("visitor_notes"),
     ownerId: text("owner_id").references(() => users.id),
+    blockedAt: timestamp("blocked_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
   (table) => [

@@ -12,6 +12,14 @@ export async function requireUser() {
   return session.user;
 }
 
+export async function requireAdmin() {
+  const user = await requireUser();
+  if (user.role !== "admin") {
+    redirect("/painel");
+  }
+  return user;
+}
+
 export async function getProfileForUser(userId: string) {
   const db = requireDb();
   const [profile] = await db
