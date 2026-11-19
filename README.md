@@ -1,36 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mundo BJJ
 
-## Getting Started
+App para achar academias de Jiu-Jitsu por cidade ou perto de você, com professor, horário e lojas da modalidade.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Next.js na Vercel, Postgres no Neon, código no GitHub.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copie `.env.example` para `.env.local`.
+2. Preencha `DATABASE_URL` (pooled, host com `-pooler`) e `DATABASE_URL_UNPOOLED` (direct) com as strings do Neon.
+3. Rode `npm run db:setup` para criar as tabelas e carregar países, estados, cidades e categorias de loja.
+4. Rode `npm run dev`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Vercel
 
-## Learn More
+Importe o repositório depois que este código estiver no `main`.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Framework Next.js, Node 22, funções em São Paulo (`gru1`).
+- Integração Neon no projeto `mundobjj`. Ela grava `DATABASE_URL` e `DATABASE_URL_UNPOOLED`.
+- Adicione `AUTH_SECRET` e `AUTH_URL` quando o login entrar.
+- O build de produção continua `next build` até a migração estar ligada. Com o banco conectado, use `npm run db:setup && next build` só se quiser migrar no deploy. O caminho previsto é `npx drizzle-kit migrate && next build`.
