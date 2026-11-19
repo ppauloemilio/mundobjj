@@ -202,3 +202,53 @@ export async function searchStores(
     sponsored: true,
   }));
 }
+
+export type AcademyMapPin = {
+  id: string;
+  name: string;
+  slug: string;
+  lat: number;
+  lng: number;
+  detail: string;
+};
+
+export async function listAcademyMapPins(): Promise<AcademyMapPin[]> {
+  const db = getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select({
+      id: academies.id,
+      name: academies.name,
+      slug: academies.slug,
+      professorName: academies.professorName,
+      city: cities.name,
+      lat: academies.lat,
+      lng: academies.lng,
+    })
+    .from(academies)
+    .leftJoin(cities, eq(academies.cityId, cities.id))
+    .where(
+      and(
+        isNull(academies.blockedAt),
+        sql`${academies.lat} is not null`,
+        sql`${academies.lng} is not null`,
+      ),
+    )
+    .orderBy(asc(academies.name))
+    .limit(500);
+
+  return rows
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      lat: toNumber(row.lat),
+      lng: toNumber(row.lng),
+      detail: [row.professorName, row.city].filter(Boolean).join(" · ") || "Academia",
+    }))
+    .filter(
+      (row): row is AcademyMapPin =>
+        row.lat != null && row.lng != null,
+    );
+}

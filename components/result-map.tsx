@@ -1,29 +1,27 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
+import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-type Pin = {
+export type MapPin = {
   id: string;
   name: string;
   lat: number;
   lng: number;
   detail: string;
+  slug?: string;
 };
 
-const icon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+const dotStyle = {
+  color: "#9f2d2d",
+  fillColor: "#9f2d2d",
+  fillOpacity: 0.9,
+  weight: 2,
+};
 
-function FitPins({ pins }: { pins: Pin[] }) {
+function FitPins({ pins }: { pins: MapPin[] }) {
   const map = useMap();
 
   useEffect(() => {
@@ -34,14 +32,14 @@ function FitPins({ pins }: { pins: Pin[] }) {
     }
     map.fitBounds(
       pins.map((pin) => [pin.lat, pin.lng]),
-      { padding: [32, 32] },
+      { padding: [32, 32], maxZoom: 14 },
     );
   }, [map, pins]);
 
   return null;
 }
 
-export default function ResultMap({ pins }: { pins: Pin[] }) {
+export default function ResultMap({ pins }: { pins: MapPin[] }) {
   const center: [number, number] =
     pins.length > 0 ? [pins[0].lat, pins[0].lng] : [-14.235, -51.9253];
 
@@ -58,13 +56,26 @@ export default function ResultMap({ pins }: { pins: Pin[] }) {
       />
       <FitPins pins={pins} />
       {pins.map((pin) => (
-        <Marker key={pin.id} position={[pin.lat, pin.lng]} icon={icon}>
+        <CircleMarker
+          key={pin.id}
+          center={[pin.lat, pin.lng]}
+          radius={9}
+          pathOptions={dotStyle}
+        >
           <Popup>
             <strong>{pin.name}</strong>
             <br />
             {pin.detail}
+            {pin.slug ? (
+              <>
+                <br />
+                <Link href={`/academia/${pin.slug}`} className="underline">
+                  Ver academia
+                </Link>
+              </>
+            ) : null}
           </Popup>
-        </Marker>
+        </CircleMarker>
       ))}
     </MapContainer>
   );

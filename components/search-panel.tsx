@@ -37,6 +37,10 @@ export function SearchPanel() {
   );
   const [academies, setAcademies] = useState<AcademyResult[]>([]);
   const [stores, setStores] = useState<StoreResult[]>([]);
+  const [allAcademyPins, setAllAcademyPins] = useState<
+    { id: string; name: string; slug: string; lat: number; lng: number; detail: string }[]
+  >([]);
+  const [searchPinsActive, setSearchPinsActive] = useState(false);
 
   useEffect(() => {
     void fetch("/api/locations")
@@ -57,6 +61,22 @@ export function SearchPanel() {
     void fetch("/api/categories")
       .then((response) => response.json())
       .then((data: { categories: Category[] }) => setCategories(data.categories));
+    void fetch("/api/academies/map")
+      .then((response) => response.json())
+      .then(
+        (data: {
+          pins: {
+            id: string;
+            name: string;
+            slug: string;
+            lat: number;
+            lng: number;
+            detail: string;
+          }[];
+        }) => {
+          if (data.pins?.length) setAllAcademyPins(data.pins);
+        },
+      );
   }, []);
 
   useEffect(() => {
@@ -139,6 +159,8 @@ export function SearchPanel() {
       return;
     }
 
+    setSearchPinsActive(true);
+
     if (data.layer === "stores") {
       const results = data.results as StoreResult[];
       setStores(results);
@@ -161,18 +183,24 @@ export function SearchPanel() {
     );
   }
 
-  const pins = (layer === "stores" ? stores : academies)
+  const searchPins = (layer === "stores" ? stores : academies)
     .filter((item) => item.lat != null && item.lng != null)
     .map((item) => ({
       id: item.id,
       name: item.name,
       lat: item.lat as number,
       lng: item.lng as number,
+      slug: "slug" in item ? item.slug : undefined,
       detail:
         "category" in item
           ? `Patrocinado · ${item.category}`
           : item.professorName || item.city || "Academia",
     }));
+
+  const pins =
+    layer === "academies" && !searchPinsActive
+      ? allAcademyPins
+      : searchPins;
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -180,11 +208,20 @@ export function SearchPanel() {
         <div className="grid grid-cols-2 gap-2">
           <FilterButton
             active={layer === "academies"}
-            onClick={() => setLayer("academies")}
+            onClick={() => {
+              setLayer("academies");
+              setSearchPinsActive(false);
+            }}
           >
             Academias
           </FilterButton>
-          <FilterButton active={layer === "stores"} onClick={() => setLayer("stores")}>
+          <FilterButton
+            active={layer === "stores"}
+            onClick={() => {
+              setLayer("stores");
+              setSearchPinsActive(true);
+            }}
+          >
             Lojas
           </FilterButton>
         </div>
@@ -269,6 +306,15 @@ export function SearchPanel() {
       </div>
 
       <p className="text-sm text-[var(--muted)]">{message}</p>
+
+      {layer === "academies" &&
+      !searchPinsActive &&
+      allAcademyPins.length > 0 ? (
+        <p className="text-xs text-[var(--muted)]">
+          Bolinhas no mapa: todas as academias com endereço salvo (
+          {allAcademyPins.length}). Use Buscar para filtrar por região.
+        </p>
+      ) : null}
 
       <ResultMap pins={pins} />
 
