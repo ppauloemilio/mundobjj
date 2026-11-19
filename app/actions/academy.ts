@@ -1,0 +1,161 @@
+"use server";
+
+import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { requireDb } from "@/db";
+import { academies, classSchedules, cities, states } from "@/db/schema";
+import { geocodeAddress } from "@/lib/geocode";
+import { requireUser } from "@/lib/session";
+import { slugify, uniqueSlug } from "@/lib/slug";
+
+const academySchema = z.object({
+  id: z.string().uuid().optional().or(z.literal("")),
+  name: z.string().trim().min(2),
+  affiliation: z.string().trim().optional(),
+  professorName: z.string().trim().optional(),
+  whatsapp: z.string().trim().optional(),
+  address: z.string().trim().min(5),
+  neighborhood: z.string().trim().optional(),
+  cityId: z.string().uuid(),
+  acceptsVisitor: z.coerce.boolean().optional(),
+  dropInPrice: z.string().optional(),
+  visitorNotes: z.string().trim().optional(),
+});
+
+export type AcademyFormState = {
+  error?: string;
+  success?: string;
+};
+
+export async function saveAcademyAction(
+  _prev: AcademyFormState,
+  formData: FormData,
+): Promise<AcademyFormState> {
+  const user = await requireUser();
+  const parsed = academySchema.safeParse({
+    id: formData.get("id") || "",
+    name: formData.get("name"),
+    affiliation: formData.get("affiliation") || "",
+    professorName: formData.get("professorName") || "",
+    whatsapp: formData.get("whatsapp") || "",
+    address: formData.get("address"),
+    neighborhood: formData.get("neighborhood") || "",
+    cityId: formData.get("cityId"),
+    acceptsVisitor: formData.get("acceptsVisitor") === "on",
+    dropInPrice: formData.get("dropInPrice") || "",
+    visitorNotes: formData.get("visitorNotes") || "",
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const db = requireDb();
+  const [place] = await db
+    .select({
+      city: cities.name,
+      state: states.name,
+      stateCode: states.code,
+    })
+    .from(cities)
+    .innerJoin(states, eq(cities.stateId, states.id))
+    .where(eq(cities.id, parsed.data.cityId))
+    .limit(1);
+
+  if (!place) return { error: "Cidade inválida." };
+
+  const query = [
+    parsed.data.address,
+    parsed.data.neighborhood,
+    place.city,
+    place.stateCode,
+    place.state,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const coords = await geocodeAddress(query);
+
+  const values = {
+    name: parsed.data.name,
+    affiliation: parsed.data.affiliation || null,
+    professorName: parsed.data.professorName || null,
+    whatsapp: parsed.data.whatsapp || null,
+    address: parsed.data.address,
+    neighborhood: parsed.data.neighborhood || null,
+    cityId: parsed.data.cityId,
+    lat: coords ? String(coords.lat) : null,
+    lng: coords ? String(coords.lng) : null,
+    acceptsVisitor: Boolean(parsed.data.acceptsVisitor),
+    dropInPrice: parsed.data.dropInPrice || null,
+    visitorNotes: parsed.data.visitorNotes || null,
+    ownerId: user.id,
+  };
+
+  let academyId = parsed.data.id || "";
+  let slug = "";
+
+  if (academyId) {
+    const [owned] = await db
+      .select()
+      .from(academies)
+      .where(and(eq(academies.id, academyId), eq(academies.ownerId, user.id)))
+      .limit(1);
+    if (!owned) return { error: "Academia não encontrada." };
+
+    slug = owned.slug;
+    await db.update(academies).set(values).where(eq(academies.id, academyId));
+  } else {
+    slug = uniqueSlug(parsed.data.name);
+    const [created] = await db
+      .insert(academies)
+      .values({ ...values, slug })
+      .returning({ id: academies.id, slug: academies.slug });
+    academyId = created.id;
+    slug = created.slug;
+  }
+
+  await db.delete(classSchedules).where(eq(classSchedules.academyId, academyId));
+
+  const weekdays = formData.getAll("scheduleWeekday");
+  const starts = formData.getAll("scheduleStartsAt");
+  const ends = formData.getAll("scheduleEndsAt");
+  const kinds = formData.getAll("scheduleKind");
+  const levels = formData.getAll("scheduleLevel");
+  const professors = formData.getAll("scheduleProfessor");
+
+  const rows = weekdays
+    .map((weekday, index) => {
+      const startsAt = String(starts[index] || "");
+      const endsAt = String(ends[index] || "");
+      const kind = String(kinds[index] || "");
+      if (!startsAt || !endsAt || !kind) return null;
+      return {
+        academyId,
+        weekday: Number(weekday),
+        startsAt,
+        endsAt,
+        kind: kind as
+          | "fundamentals"
+          | "gi"
+          | "nogi"
+          | "competition"
+          | "kids"
+          | "open_mat",
+        level: String(levels[index] || "") || null,
+        professorName: String(professors[index] || "") || null,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+  if (rows.length) {
+    await db.insert(classSchedules).values(rows);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/painel/academia");
+  revalidatePath(`/academia/${slug}`);
+  redirect(`/painel/academia?saved=${slugify(slug)}`);
+}

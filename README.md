@@ -10,14 +10,14 @@ Next.js na Vercel, Postgres no Neon, código no GitHub.
 
 1. Copie `.env.example` para `.env.local`.
 2. Preencha `DATABASE_URL` (pooled, host com `-pooler`) e `DATABASE_URL_UNPOOLED` (direct) com as strings do Neon.
-3. Rode `npm run db:setup` para criar as tabelas e carregar países, estados, cidades e categorias de loja.
-4. Rode `npm run dev`.
+3. Preencha `AUTH_SECRET` (`npx auth secret`) e `AUTH_URL=http://localhost:3000`. Em ambientes com proxy corporativo, use `NODE_EXTRA_CA_CERTS` apontando para o PEM da raiz local.
+4. Rode `npm run db:setup` para criar as tabelas e carregar países, estados, cidades e categorias de loja.
+5. Rode `npm run dev`.
+
+Rotas principais: `/` busca, `/cadastro`, `/entrar`, `/painel`, `/painel/academia`, `/atleta/[slug]`, `/academia/[slug]`.
 
 ## Vercel
 
-Importe o repositório depois que este código estiver no `main`.
-
 - Framework Next.js, Node 22, funções em São Paulo (`gru1`).
-- Integração Neon no projeto `mundobjj`. Ela grava `DATABASE_URL` e `DATABASE_URL_UNPOOLED`.
-- Adicione `AUTH_SECRET` e `AUTH_URL` quando o login entrar.
-- O build de produção continua `next build` até a migração estar ligada. Com o banco conectado, use `npm run db:setup && next build` só se quiser migrar no deploy. O caminho previsto é `npx drizzle-kit migrate && next build`.
+- Variáveis: `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `AUTH_SECRET`, `AUTH_URL=https://mundobjj.vercel.app`, `AUTH_TRUST_HOST=true`.
+- Build: `next build`. Migrações novas rodam localmente com `npm run db:migrate` antes do push.

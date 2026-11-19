@@ -8,6 +8,13 @@
       "when": 1795099905652,
       "tag": "0000_many_bloodscream",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795109507464,
+      "tag": "0001_naive_hellfire_club",
+      "breakpoints": true
     }
   ]
 }
