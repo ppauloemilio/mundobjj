@@ -5,6 +5,7 @@ import {
   updateProfileAction,
   type ProfileFormState,
 } from "@/app/actions/profile";
+import { AcademySelect } from "@/components/academy-select";
 import { LocationFields } from "@/components/location-fields";
 
 const initial: ProfileFormState = {};
@@ -25,6 +26,7 @@ type ProfileValues = {
   name: string;
   slug: string;
   cityId: string | null;
+  academyId: string | null;
   belt: string;
   stripes: number;
   style: string;
@@ -46,6 +48,7 @@ export function ProfileForm({ profile }: { profile: ProfileValues }) {
       <Field label="Nome" name="name" defaultValue={profile.name} required />
       <Field label="Link do perfil" name="slug" defaultValue={profile.slug} required />
       <LocationFields initialCityId={profile.cityId ?? ""} />
+      <AcademySelect initialAcademyId={profile.academyId ?? ""} />
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm">
           Faixa

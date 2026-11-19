@@ -38,6 +38,7 @@ async function main() {
         name,
         passwordHash,
         role: "admin",
+        accountType: "athlete",
         blockedAt: null,
       })
       .where(eq(users.id, existing.id));
@@ -52,6 +53,7 @@ async function main() {
     email,
     passwordHash,
     role: "admin",
+    accountType: "athlete",
   });
   await db.insert(profiles).values({
     userId,

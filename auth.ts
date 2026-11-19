@@ -47,6 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           image: user.image,
           role: user.role,
+          accountType: user.accountType,
         };
       },
     }),
@@ -55,7 +56,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, user }) {
       if (user?.id) {
         token.sub = user.id;
-        token.role = (user as { role?: "user" | "admin" }).role ?? "user";
+        token.role = user.role ?? "user";
+        token.accountType = user.accountType ?? "athlete";
       }
       return token;
     },
@@ -63,8 +65,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user && token.sub) {
         session.user.id = token.sub;
         session.user.role = (token.role as "user" | "admin") ?? "user";
+        session.user.accountType =
+          (token.accountType as "athlete" | "academy") ?? "athlete";
       }
       return session;
     },
   },
 });
+
+export function homePathForUser(user: {
+  role?: string | null;
+  accountType?: string | null;
+}) {
+  if (user.role === "admin") return "/admin";
+  if (user.accountType === "academy") return "/painel/academia";
+  return "/painel";
+}

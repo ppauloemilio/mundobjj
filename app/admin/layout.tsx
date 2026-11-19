@@ -25,6 +25,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <Link href="/admin/academias" className="font-medium underline">
           Academias
         </Link>
+        <Link href="/admin/sugestoes" className="font-medium underline">
+          Sugestões
+        </Link>
       </nav>
       {children}
     </main>

@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { and, eq } from "drizzle-orm";
 import { ProfileForm } from "@/components/profile-form";
+import { requireDb } from "@/db";
+import { memberships } from "@/db/schema";
 import { getProfileForUser, requireUser } from "@/lib/session";
 
 export const instant = false;
@@ -11,6 +14,18 @@ export default async function PainelPage() {
   if (!profile) {
     return <p>Perfil não encontrado.</p>;
   }
+
+  const db = requireDb();
+  const [membership] = await db
+    .select({ academyId: memberships.academyId })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.profileId, profile.id),
+        eq(memberships.status, "active"),
+      ),
+    )
+    .limit(1);
 
   return (
     <section className="flex flex-col gap-4">
@@ -28,6 +43,7 @@ export default async function PainelPage() {
           name: profile.name,
           slug: profile.slug,
           cityId: profile.cityId,
+          academyId: membership?.academyId ?? null,
           belt: profile.belt,
           stripes: profile.stripes,
           style: profile.style,

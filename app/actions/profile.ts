@@ -1,17 +1,20 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireDb } from "@/db";
-import { profiles } from "@/db/schema";
+import { academies, academySuggestions, memberships, profiles } from "@/db/schema";
+import {
+  readLocationFromForm,
+  saveLocationSuggestions,
+} from "@/lib/location-input";
 import { requireUser } from "@/lib/session";
 import { slugify } from "@/lib/slug";
 
 const profileSchema = z.object({
   name: z.string().trim().min(2),
   slug: z.string().trim().min(2),
-  cityId: z.string().uuid().optional().or(z.literal("")),
   belt: z.enum([
     "white",
     "blue",
@@ -33,6 +36,9 @@ const profileSchema = z.object({
   contactEmail: z.string().trim().email().optional().or(z.literal("")),
   showWhatsapp: z.coerce.boolean().optional(),
   showEmail: z.coerce.boolean().optional(),
+  academyMode: z.enum(["list", "other"]).optional(),
+  academyId: z.string().uuid().optional().or(z.literal("")),
+  suggestedAcademyName: z.string().trim().optional(),
 });
 
 export type ProfileFormState = {
@@ -48,7 +54,6 @@ export async function updateProfileAction(
   const parsed = profileSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
-    cityId: formData.get("cityId") || "",
     belt: formData.get("belt"),
     stripes: formData.get("stripes"),
     style: formData.get("style"),
@@ -60,6 +65,9 @@ export async function updateProfileAction(
     contactEmail: formData.get("contactEmail") || "",
     showWhatsapp: formData.get("showWhatsapp") === "on",
     showEmail: formData.get("showEmail") === "on",
+    academyMode: formData.get("academyMode") || "list",
+    academyId: formData.get("academyId") || "",
+    suggestedAcademyName: formData.get("suggestedAcademyName") || "",
   });
 
   if (!parsed.success) {
@@ -80,12 +88,18 @@ export async function updateProfileAction(
     return { error: "Este link de perfil já está em uso." };
   }
 
-  await db
+  const location = readLocationFromForm(formData);
+  await saveLocationSuggestions(location, user.id);
+  const nextCityId = location.customCity
+    ? undefined
+    : location.cityId || undefined;
+
+  const [profile] = await db
     .update(profiles)
     .set({
       name: parsed.data.name,
       slug,
-      cityId: parsed.data.cityId || null,
+      ...(nextCityId !== undefined ? { cityId: nextCityId } : {}),
       belt: parsed.data.belt,
       stripes: parsed.data.stripes,
       style: parsed.data.style,
@@ -98,7 +112,46 @@ export async function updateProfileAction(
       showWhatsapp: Boolean(parsed.data.showWhatsapp),
       showEmail: Boolean(parsed.data.showEmail),
     })
-    .where(eq(profiles.userId, user.id));
+    .where(eq(profiles.userId, user.id))
+    .returning();
+
+  if (!profile) return { error: "Perfil não encontrado." };
+
+  if (parsed.data.academyMode === "other" && parsed.data.suggestedAcademyName) {
+    await db.insert(academySuggestions).values({
+      name: parsed.data.suggestedAcademyName,
+      suggestedByUserId: user.id,
+      contact: parsed.data.contactEmail || user.email || null,
+    });
+  } else if (parsed.data.academyId) {
+    const [academy] = await db
+      .select({ id: academies.id })
+      .from(academies)
+      .where(eq(academies.id, parsed.data.academyId))
+      .limit(1);
+
+    if (academy) {
+      await db
+        .update(memberships)
+        .set({
+          status: "left",
+          endedAt: new Date().toISOString().slice(0, 10),
+        })
+        .where(
+          and(
+            eq(memberships.profileId, profile.id),
+            eq(memberships.status, "active"),
+          ),
+        );
+
+      await db.insert(memberships).values({
+        profileId: profile.id,
+        academyId: academy.id,
+        status: "active",
+        startedAt: new Date().toISOString().slice(0, 10),
+      });
+    }
+  }
 
   revalidatePath("/painel");
   revalidatePath(`/atleta/${slug}`);

@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireDb } from "@/db";
-import { cities, profiles, states } from "@/db/schema";
+import { academies, cities, memberships, profiles, states } from "@/db/schema";
 
 export const instant = false;
 
@@ -40,6 +41,20 @@ export default async function AtletaPage({
 
   const { profile } = row;
   const place = [row.city, row.state].filter(Boolean).join(", ");
+  const [membership] = await db
+    .select({
+      academyName: academies.name,
+      academySlug: academies.slug,
+    })
+    .from(memberships)
+    .innerJoin(academies, eq(memberships.academyId, academies.id))
+    .where(
+      and(
+        eq(memberships.profileId, profile.id),
+        eq(memberships.status, "active"),
+      ),
+    )
+    .limit(1);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-10 sm:px-6">
@@ -52,6 +67,14 @@ export default async function AtletaPage({
           .filter(Boolean)
           .join(" · ")}
       </p>
+      {membership ? (
+        <p className="text-sm">
+          Academia:{" "}
+          <Link href={`/academia/${membership.academySlug}`} className="underline">
+            {membership.academyName}
+          </Link>
+        </p>
+      ) : null}
       {profile.bio ? <p className="leading-7">{profile.bio}</p> : null}
       {profile.competitor ? (
         <p className="text-sm font-medium">Competidor</p>

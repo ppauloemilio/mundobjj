@@ -7,6 +7,10 @@ import { z } from "zod";
 import { requireDb } from "@/db";
 import { academies, classSchedules, cities, states } from "@/db/schema";
 import { geocodeAddress } from "@/lib/geocode";
+import {
+  readLocationFromForm,
+  saveLocationSuggestions,
+} from "@/lib/location-input";
 import { requireUser } from "@/lib/session";
 import { slugify, uniqueSlug } from "@/lib/slug";
 
@@ -18,7 +22,6 @@ const academySchema = z.object({
   whatsapp: z.string().trim().optional(),
   address: z.string().trim().min(5),
   neighborhood: z.string().trim().optional(),
-  cityId: z.string().uuid(),
   acceptsVisitor: z.coerce.boolean().optional(),
   dropInPrice: z.string().optional(),
   visitorNotes: z.string().trim().optional(),
@@ -42,7 +45,6 @@ export async function saveAcademyAction(
     whatsapp: formData.get("whatsapp") || "",
     address: formData.get("address"),
     neighborhood: formData.get("neighborhood") || "",
-    cityId: formData.get("cityId"),
     acceptsVisitor: formData.get("acceptsVisitor") === "on",
     dropInPrice: formData.get("dropInPrice") || "",
     visitorNotes: formData.get("visitorNotes") || "",
@@ -53,25 +55,40 @@ export async function saveAcademyAction(
   }
 
   const db = requireDb();
-  const [place] = await db
-    .select({
-      city: cities.name,
-      state: states.name,
-      stateCode: states.code,
-    })
-    .from(cities)
-    .innerJoin(states, eq(cities.stateId, states.id))
-    .where(eq(cities.id, parsed.data.cityId))
-    .limit(1);
+  const location = readLocationFromForm(formData);
+  await saveLocationSuggestions(location, user.id);
+  const cityId = location.customCity ? null : location.cityId;
 
-  if (!place) return { error: "Cidade inválida." };
+  if (!cityId && !location.customCity && !parsed.data.id) {
+    return { error: "Selecione a cidade ou use Outro." };
+  }
+
+  let placeName = "";
+  if (cityId) {
+    const [place] = await db
+      .select({
+        city: cities.name,
+        state: states.name,
+        stateCode: states.code,
+      })
+      .from(cities)
+      .innerJoin(states, eq(cities.stateId, states.id))
+      .where(eq(cities.id, cityId))
+      .limit(1);
+    if (place) {
+      placeName = [place.city, place.stateCode, place.state]
+        .filter(Boolean)
+        .join(", ");
+    }
+  }
 
   const query = [
     parsed.data.address,
     parsed.data.neighborhood,
-    place.city,
-    place.stateCode,
-    place.state,
+    placeName,
+    location.customCity,
+    location.customState,
+    location.customCountry,
   ]
     .filter(Boolean)
     .join(", ");
@@ -85,7 +102,7 @@ export async function saveAcademyAction(
     whatsapp: parsed.data.whatsapp || null,
     address: parsed.data.address,
     neighborhood: parsed.data.neighborhood || null,
-    cityId: parsed.data.cityId,
+    ...(cityId ? { cityId } : {}),
     lat: coords ? String(coords.lat) : null,
     lng: coords ? String(coords.lng) : null,
     acceptsVisitor: Boolean(parsed.data.acceptsVisitor),

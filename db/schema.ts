@@ -59,6 +59,20 @@ export const sponsorPlacementEnum = pgEnum("sponsor_placement", [
 
 export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
 
+export const accountTypeEnum = pgEnum("account_type", ["athlete", "academy"]);
+
+export const suggestionStatusEnum = pgEnum("suggestion_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+export const locationKindEnum = pgEnum("location_kind", [
+  "country",
+  "state",
+  "city",
+]);
+
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -69,6 +83,7 @@ export const users = pgTable("user", {
   image: text("image"),
   passwordHash: text("password_hash"),
   role: userRoleEnum("role").notNull().default("user"),
+  accountType: accountTypeEnum("account_type").notNull().default("athlete"),
   blockedAt: timestamp("blocked_at", { mode: "date" }),
 });
 
@@ -300,4 +315,32 @@ export const supportPayments = pgTable("support_payments", {
   providerChargeId: text("provider_charge_id"),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   paidAt: timestamp("paid_at", { mode: "date" }),
+});
+
+export const locationSuggestions = pgTable("location_suggestions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kind: locationKindEnum("kind").notNull(),
+  name: text("name").notNull(),
+  countryIso2: text("country_iso2"),
+  countryName: text("country_name"),
+  stateId: uuid("state_id").references(() => states.id),
+  stateName: text("state_name"),
+  suggestedByUserId: text("suggested_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  status: suggestionStatusEnum("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export const academySuggestions = pgTable("academy_suggestions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  cityText: text("city_text"),
+  contact: text("contact"),
+  notes: text("notes"),
+  suggestedByUserId: text("suggested_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  status: suggestionStatusEnum("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
