@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { listCities, listCountries, listStates } from "@/lib/catalog";
+import { databaseError, listCities, listCountries, listStates } from "@/lib/catalog";
 
 export async function GET(request: Request) {
   await connection();
@@ -7,16 +7,26 @@ export async function GET(request: Request) {
   const iso2 = url.searchParams.get("country");
   const stateId = url.searchParams.get("state");
 
-  if (stateId) {
-    return Response.json({ cities: await listCities(stateId) });
-  }
+  try {
+    if (stateId) {
+      return Response.json({ cities: await listCities(stateId) });
+    }
 
-  if (iso2) {
-    return Response.json({ states: await listStates(iso2) });
-  }
+    if (iso2) {
+      return Response.json({ states: await listStates(iso2) });
+    }
 
-  return Response.json({
-    configured: Boolean(process.env.DATABASE_URL),
-    countries: await listCountries(),
-  });
+    return Response.json({
+      configured: Boolean(process.env.DATABASE_URL),
+      countries: await listCountries(),
+    });
+  } catch (error) {
+    return Response.json({
+      configured: Boolean(process.env.DATABASE_URL),
+      countries: [],
+      states: [],
+      cities: [],
+      error: databaseError(error),
+    });
+  }
 }

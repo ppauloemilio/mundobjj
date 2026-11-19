@@ -6,6 +6,14 @@ export async function databaseConfigured() {
   return Boolean(process.env.DATABASE_URL);
 }
 
+export function databaseError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("does not exist") || message.includes("relation")) {
+    return "schema";
+  }
+  return "unavailable";
+}
+
 export async function listCountries() {
   const db = getDb();
   if (!db) return [];

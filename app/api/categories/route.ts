@@ -1,11 +1,19 @@
 import { connection } from "next/server";
-import { listCategories } from "@/lib/catalog";
+import { databaseError, listCategories } from "@/lib/catalog";
 
 export async function GET() {
   await connection();
 
-  return Response.json({
-    configured: Boolean(process.env.DATABASE_URL),
-    categories: await listCategories(),
-  });
+  try {
+    return Response.json({
+      configured: Boolean(process.env.DATABASE_URL),
+      categories: await listCategories(),
+    });
+  } catch (error) {
+    return Response.json({
+      configured: Boolean(process.env.DATABASE_URL),
+      categories: [],
+      error: databaseError(error),
+    });
+  }
 }

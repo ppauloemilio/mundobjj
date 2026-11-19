@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { databaseError } from "@/lib/catalog";
 import { searchAcademies, searchStores } from "@/lib/search";
 
 function numberParam(value: string | null) {
@@ -24,10 +25,17 @@ export async function GET(request: Request) {
     return Response.json({ configured, layer, results: [] });
   }
 
-  const results =
-    layer === "stores"
-      ? await searchStores(filter)
-      : await searchAcademies(filter);
+  try {
+    const results =
+      layer === "stores" ? await searchStores(filter) : await searchAcademies(filter);
 
-  return Response.json({ configured, layer, results });
+    return Response.json({ configured, layer, results });
+  } catch (error) {
+    return Response.json({
+      configured,
+      layer,
+      results: [],
+      error: databaseError(error),
+    });
+  }
 }

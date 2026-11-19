@@ -41,10 +41,14 @@ export function SearchPanel() {
   useEffect(() => {
     void fetch("/api/locations")
       .then((response) => response.json())
-      .then((data: { configured: boolean; countries: Country[] }) => {
+      .then((data: { configured: boolean; countries: Country[]; error?: string }) => {
         setConfigured(data.configured);
         setCountries(data.countries);
-        if (!data.configured) {
+        if (data.error === "schema") {
+          setMessage(
+            "O Neon está ligado, mas as tabelas ainda não existem. O próximo passo é rodar npm run db:setup.",
+          );
+        } else if (!data.configured) {
           setMessage(
             "O Neon ainda não está ligado neste ambiente. A busca abre assim que a DATABASE_URL existir e o seed rodar.",
           );
@@ -119,15 +123,18 @@ export function SearchPanel() {
       configured: boolean;
       layer: Layer;
       results: AcademyResult[] | StoreResult[];
+      error?: string;
     };
     setConfigured(data.configured);
     setLoading(false);
 
-    if (!data.configured) {
+    if (!data.configured || data.error === "schema") {
       setAcademies([]);
       setStores([]);
       setMessage(
-        "O Neon ainda não está ligado neste ambiente. A busca abre assim que a DATABASE_URL existir e o seed rodar.",
+        data.error === "schema"
+          ? "O Neon está ligado, mas as tabelas ainda não existem. O próximo passo é rodar npm run db:setup."
+          : "O Neon ainda não está ligado neste ambiente. A busca abre assim que a DATABASE_URL existir e o seed rodar.",
       );
       return;
     }
