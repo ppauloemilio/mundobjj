@@ -3,34 +3,44 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction, type AuthFormState } from "@/app/actions/auth";
+import { useLocale } from "@/components/locale-provider";
 
 const initial: AuthFormState = {};
 
 export function LoginForm() {
+  const { t } = useLocale();
   const [state, action, pending] = useActionState(loginAction, initial);
 
   return (
-    <form action={action} className="flex flex-col gap-4">
-      <Field label="E-mail" name="email" type="email" autoComplete="email" required />
+    <form action={action} className="flex flex-col gap-3.5">
       <Field
-        label="Senha"
+        label={t("loginEmail")}
+        name="email"
+        type="email"
+        autoComplete="email"
+        required
+      />
+      <Field
+        label={t("loginPassword")}
         name="password"
         type="password"
         autoComplete="current-password"
         required
       />
-      {state.error ? <p className="text-sm text-[var(--accent)]">{state.error}</p> : null}
+      {state.error ? (
+        <p className="text-[13px] text-[var(--accent)]">{state.error}</p>
+      ) : null}
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-full bg-[var(--accent)] px-5 font-semibold text-white disabled:opacity-60"
+        className="ui-btn ui-btn-primary w-fit disabled:opacity-60"
       >
-        {pending ? "Entrando..." : "Entrar"}
+        {pending ? t("loginLoading") : t("loginSubmit")}
       </button>
-      <p className="text-sm text-[var(--muted)]">
-        Ainda não tem conta?{" "}
+      <p className="text-[13px] text-[var(--muted)]">
+        {t("loginNoAccount")}{" "}
         <Link href="/cadastro" className="font-medium text-[var(--ink)] underline">
-          Cadastre-se
+          {t("loginSignUp")}
         </Link>
       </p>
     </form>
@@ -51,14 +61,14 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex flex-col gap-1 text-[13px]">
       {label}
       <input
         name={name}
         type={type}
         autoComplete={autoComplete}
         required={required}
-        className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+        className="ui-input"
       />
     </label>
   );

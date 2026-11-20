@@ -10,34 +10,36 @@ import {
 } from "@/app/actions/auth";
 import { AcademySelect } from "@/components/academy-select";
 import { LocationFields } from "@/components/location-fields";
+import { useLocale } from "@/components/locale-provider";
 import { ProfessorSelect } from "@/components/professor-select";
 
 const initial: AuthFormState = {};
 
 export function AthleteRegisterForm() {
+  const { t } = useLocale();
   const [state, action, pending] = useActionState(registerAthleteAction, initial);
   const [academyId, setAcademyId] = useState("");
 
   return (
-    <form action={action} className="flex flex-col gap-4">
-      <Field label="Nome" name="name" required />
-      <Field label="E-mail" name="email" type="email" required />
-      <Field label="Senha" name="password" type="password" required />
+    <form action={action} className="flex flex-col gap-3.5">
+      <Field label={t("name")} name="name" required />
+      <Field label={t("loginEmail")} name="email" type="email" required />
+      <Field label={t("password")} name="password" type="password" required />
       <LocationFields />
       <AcademySelect onAcademyIdChange={setAcademyId} />
       <ProfessorSelect academyId={academyId} />
-      {state.error ? <p className="text-sm text-[var(--accent)]">{state.error}</p> : null}
+      {state.error ? <p className="text-[13px] text-[var(--accent)]">{state.error}</p> : null}
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-full bg-[var(--accent)] px-5 font-semibold text-white disabled:opacity-60"
+        className="ui-btn ui-btn-primary w-fit disabled:opacity-60"
       >
-        {pending ? "Criando..." : "Criar conta de praticante"}
+        {pending ? t("creating") : t("createAthlete")}
       </button>
-      <p className="text-sm text-[var(--muted)]">
-        Já tem conta?{" "}
+      <p className="text-[13px] text-[var(--muted)]">
+        {t("registerHasAccount")}{" "}
         <Link href="/entrar" className="underline">
-          Entrar
+          {t("navEnter")}
         </Link>
       </p>
     </form>
@@ -45,30 +47,28 @@ export function AthleteRegisterForm() {
 }
 
 export function AcademyRegisterForm() {
+  const { t } = useLocale();
   const [state, action, pending] = useActionState(registerAcademyAction, initial);
 
   return (
-    <form action={action} className="flex flex-col gap-4">
-      <Field label="Nome da academia" name="academyName" required />
-      <Field label="E-mail de acesso" name="email" type="email" required />
-      <Field label="Senha" name="password" type="password" required />
-      <Field label="WhatsApp da academia" name="whatsapp" />
-      <p className="text-sm text-[var(--muted)]">
-        Endereço, cidade e grade de horários são preenchidos no painel após o
-        login.
-      </p>
-      {state.error ? <p className="text-sm text-[var(--accent)]">{state.error}</p> : null}
+    <form action={action} className="flex flex-col gap-3.5">
+      <Field label={t("academyName")} name="academyName" required />
+      <Field label={t("accessEmail")} name="email" type="email" required />
+      <Field label={t("password")} name="password" type="password" required />
+      <Field label={t("academyWhatsapp")} name="whatsapp" />
+      <p className="text-[13px] text-[var(--muted)]">{t("academyRegisterHint")}</p>
+      {state.error ? <p className="text-[13px] text-[var(--accent)]">{state.error}</p> : null}
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-full bg-[var(--accent)] px-5 font-semibold text-white disabled:opacity-60"
+        className="ui-btn ui-btn-primary w-fit disabled:opacity-60"
       >
-        {pending ? "Criando..." : "Criar conta de academia"}
+        {pending ? t("creating") : t("createAcademy")}
       </button>
-      <p className="text-sm text-[var(--muted)]">
-        Já tem conta?{" "}
+      <p className="text-[13px] text-[var(--muted)]">
+        {t("registerHasAccount")}{" "}
         <Link href="/entrar" className="underline">
-          Entrar
+          {t("navEnter")}
         </Link>
       </p>
     </form>
@@ -76,29 +76,28 @@ export function AcademyRegisterForm() {
 }
 
 export function ProfessorRegisterForm() {
+  const { t } = useLocale();
   const [state, action, pending] = useActionState(registerProfessorAction, initial);
 
   return (
-    <form action={action} className="flex flex-col gap-4">
-      <Field label="Nome" name="name" required />
-      <Field label="E-mail" name="email" type="email" required />
-      <Field label="Senha" name="password" type="password" required />
+    <form action={action} className="flex flex-col gap-3.5">
+      <Field label={t("name")} name="name" required />
+      <Field label={t("loginEmail")} name="email" type="email" required />
+      <Field label={t("password")} name="password" type="password" required />
       <LocationFields />
-      <p className="text-sm text-[var(--muted)]">
-        Depois do login, vincule-se às academias onde você dá aula.
-      </p>
-      {state.error ? <p className="text-sm text-[var(--accent)]">{state.error}</p> : null}
+      <p className="text-[13px] text-[var(--muted)]">{t("professorRegisterHint")}</p>
+      {state.error ? <p className="text-[13px] text-[var(--accent)]">{state.error}</p> : null}
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-full bg-[var(--accent)] px-5 font-semibold text-white disabled:opacity-60"
+        className="ui-btn ui-btn-primary w-fit disabled:opacity-60"
       >
-        {pending ? "Criando..." : "Criar conta de professor"}
+        {pending ? t("creating") : t("createProfessor")}
       </button>
-      <p className="text-sm text-[var(--muted)]">
-        Já tem conta?{" "}
+      <p className="text-[13px] text-[var(--muted)]">
+        {t("registerHasAccount")}{" "}
         <Link href="/entrar" className="underline">
-          Entrar
+          {t("navEnter")}
         </Link>
       </p>
     </form>
@@ -117,14 +116,9 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex flex-col gap-1 text-[13px]">
       {label}
-      <input
-        name={name}
-        type={type}
-        required={required}
-        className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-      />
+      <input name={name} type={type} required={required} className="ui-input" />
     </label>
   );
 }

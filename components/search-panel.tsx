@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState, type ReactNode } from "react";
+import { useLocale } from "@/components/locale-provider";
 import { formatDistance } from "@/lib/labels";
 import type { AcademyResult, StoreResult } from "@/lib/search";
 
@@ -19,6 +20,7 @@ type Mode = "nearby" | "place";
 const radii = [5, 10, 25];
 
 export function SearchPanel() {
+  const { locale, t } = useLocale();
   const [layer, setLayer] = useState<Layer>("academies");
   const [mode, setMode] = useState<Mode>("nearby");
   const [radius, setRadius] = useState(10);
@@ -32,9 +34,7 @@ export function SearchPanel() {
   const [category, setCategory] = useState("");
   const [configured, setConfigured] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(
-    "Escolha perto de mim ou uma cidade para ver academias.",
-  );
+  const [message, setMessage] = useState("");
   const [academies, setAcademies] = useState<AcademyResult[]>([]);
   const [stores, setStores] = useState<StoreResult[]>([]);
   const [allAcademyPins, setAllAcademyPins] = useState<
@@ -43,7 +43,11 @@ export function SearchPanel() {
   const [searchPinsActive, setSearchPinsActive] = useState(false);
 
   useEffect(() => {
-    void fetch("/api/geo")
+    setMessage(t("searchHint"));
+  }, [t, locale]);
+
+  useEffect(() => {
+    void fetch(`/api/geo?locale=${locale}`)
       .then((response) => response.json())
       .then((data: { countries: Country[] }) => {
         setCountries(data.countries ?? []);
@@ -69,12 +73,12 @@ export function SearchPanel() {
           if (data.pins?.length) setAllAcademyPins(data.pins);
         },
       );
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (!country) return;
     let ignore = false;
-    void fetch(`/api/geo?country=${country}`)
+    void fetch(`/api/geo?country=${country}&locale=${locale}`)
       .then((response) => response.json())
       .then((data: { states: StateRow[] }) => {
         if (!ignore) setStates(data.states ?? []);
@@ -82,12 +86,12 @@ export function SearchPanel() {
     return () => {
       ignore = true;
     };
-  }, [country]);
+  }, [country, locale]);
 
   useEffect(() => {
     if (!country || !stateCode) return;
     let ignore = false;
-    void fetch(`/api/geo?country=${country}&state=${stateCode}`)
+    void fetch(`/api/geo?country=${country}&state=${stateCode}&locale=${locale}`)
       .then((response) => response.json())
       .then((data: { cities: City[] }) => {
         if (!ignore) setCities(data.cities ?? []);
@@ -95,14 +99,14 @@ export function SearchPanel() {
     return () => {
       ignore = true;
     };
-  }, [country, stateCode]);
+  }, [country, stateCode, locale]);
 
   async function search(next?: { lat?: number; lng?: number; cityId?: string }) {
     const params = new URLSearchParams({ layer, radius: String(radius) });
 
     if (mode === "place") {
       if (!country || !stateCode || !cityName) {
-        setMessage("Escolha país, estado e cidade.");
+        setMessage(t("searchNeedPlace"));
         return;
       }
       setLoading(true);
@@ -121,9 +125,7 @@ export function SearchPanel() {
       if (!resolved.configured || !resolved.cityId) {
         setLoading(false);
         setMessage(
-          resolved.configured
-            ? "Não foi possível resolver a cidade selecionada."
-            : "O Neon ainda não está ligado neste ambiente.",
+          resolved.configured ? t("searchCityFail") : t("searchDbOff"),
         );
         return;
       }
@@ -142,7 +144,7 @@ export function SearchPanel() {
         },
         () => {
           setLoading(false);
-          setMessage("Não foi possível ler a localização deste aparelho.");
+          setMessage(t("searchGeoDenied"));
         },
       );
       return;
@@ -164,11 +166,7 @@ export function SearchPanel() {
     if (!data.configured || data.error === "schema") {
       setAcademies([]);
       setStores([]);
-      setMessage(
-        data.error === "schema"
-          ? "O Neon está ligado, mas as tabelas ainda não existem. O próximo passo é rodar npm run db:setup."
-          : "O Neon ainda não está ligado neste ambiente. A busca abre assim que a DATABASE_URL existir e o seed rodar.",
-      );
+      setMessage(t("searchDbOff"));
       return;
     }
 
@@ -180,8 +178,13 @@ export function SearchPanel() {
       setAcademies([]);
       setMessage(
         results.length
-          ? `${results.length} loja${results.length > 1 ? "s" : ""} encontrada${results.length > 1 ? "s" : ""}.`
-          : "Nenhuma loja nesta região ainda.",
+          ? t(
+              results.length > 1
+                ? "searchStoresFoundPlural"
+                : "searchStoresFound",
+              { n: results.length },
+            )
+          : t("searchNoStores"),
       );
       return;
     }
@@ -191,8 +194,13 @@ export function SearchPanel() {
     setStores([]);
     setMessage(
       results.length
-        ? `${results.length} academia${results.length > 1 ? "s" : ""} encontrada${results.length > 1 ? "s" : ""}.`
-        : "Nenhuma academia nesta região ainda. O admin pode cadastrá-la em /admin/academias.",
+        ? t(
+            results.length > 1
+              ? "searchAcademiesFoundPlural"
+              : "searchAcademiesFound",
+            { n: results.length },
+          )
+        : t("searchNoAcademies"),
     );
   }
 
@@ -206,8 +214,8 @@ export function SearchPanel() {
       slug: "slug" in item ? item.slug : undefined,
       detail:
         "category" in item
-          ? `Patrocinado · ${item.category}`
-          : item.professorName || item.city || "Academia",
+          ? `${t("sponsored")} · ${item.category}`
+          : item.professorName || item.city || t("searchAcademies"),
     }));
 
   const pins =
@@ -216,9 +224,9 @@ export function SearchPanel() {
       : searchPins;
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <div className="flex flex-col gap-4 rounded-3xl border border-[var(--line)] bg-[var(--card)] p-4 sm:p-6">
-        <div className="grid grid-cols-2 gap-2">
+    <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 sm:px-6">
+      <div className="ui-card flex flex-col gap-3.5 p-3.5 sm:p-4">
+        <div className="grid grid-cols-2 gap-1.5">
           <FilterButton
             active={layer === "academies"}
             onClick={() => {
@@ -226,7 +234,7 @@ export function SearchPanel() {
               setSearchPinsActive(false);
             }}
           >
-            Academias
+            {t("searchAcademies")}
           </FilterButton>
           <FilterButton
             active={layer === "stores"}
@@ -235,14 +243,14 @@ export function SearchPanel() {
               setSearchPinsActive(true);
             }}
           >
-            Lojas
+            {t("searchStores")}
           </FilterButton>
         </div>
 
         {layer === "stores" ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <Chip active={category === ""} onClick={() => setCategory("")}>
-              Todas
+              {t("searchAll")}
             </Chip>
             {categories.map((item) => (
               <Chip
@@ -256,19 +264,20 @@ export function SearchPanel() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           <FilterButton active={mode === "nearby"} onClick={() => setMode("nearby")}>
-            Perto de mim
+            {t("searchNearby")}
           </FilterButton>
           <FilterButton active={mode === "place"} onClick={() => setMode("place")}>
-            Por lugar
+            {t("searchByPlace")}
           </FilterButton>
         </div>
 
         {mode === "place" ? (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-2.5 sm:grid-cols-3">
             <Select
-              label="País"
+              label={t("country")}
+              selectLabel={t("searchSelect")}
               value={country}
               onChange={(value) => {
                 setCountry(value);
@@ -277,10 +286,14 @@ export function SearchPanel() {
                 setStates([]);
                 setCities([]);
               }}
-              options={countries.map((item) => ({ value: item.iso2, label: item.name }))}
+              options={countries.map((item) => ({
+                value: item.iso2,
+                label: item.name,
+              }))}
             />
             <Select
-              label="Estado"
+              label={t("state")}
+              selectLabel={t("searchSelect")}
               value={stateCode}
               disabled={!country}
               onChange={(value) => {
@@ -294,15 +307,19 @@ export function SearchPanel() {
               }))}
             />
             <Select
-              label="Cidade"
+              label={t("city")}
+              selectLabel={t("searchSelect")}
               value={cityName}
               disabled={!stateCode}
               onChange={setCityName}
-              options={cities.map((item) => ({ value: item.name, label: item.name }))}
+              options={cities.map((item) => ({
+                value: item.name,
+                label: item.name,
+              }))}
             />
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {radii.map((value) => (
               <Chip key={value} active={radius === value} onClick={() => setRadius(value)}>
                 {value} km
@@ -315,66 +332,63 @@ export function SearchPanel() {
           type="button"
           onClick={() => void search()}
           disabled={loading || !configured}
-          className="min-h-11 rounded-full bg-[var(--accent)] px-5 text-base font-semibold text-white disabled:opacity-60"
+          className="ui-btn ui-btn-primary w-fit"
         >
-          {loading ? "Buscando..." : "Buscar"}
+          {loading ? t("searchLoading") : t("searchButton")}
         </button>
       </div>
 
-      <p className="text-sm text-[var(--muted)]">{message}</p>
+      <p className="text-[13px] text-[var(--muted)]">{message}</p>
 
       {layer === "academies" &&
       !searchPinsActive &&
       allAcademyPins.length > 0 ? (
-        <p className="text-xs text-[var(--muted)]">
-          Bolinhas no mapa: todas as academias com endereço salvo (
-          {allAcademyPins.length}). Use Buscar para filtrar por região.
+        <p className="text-[12px] text-[var(--muted)]">
+          {t("searchMapHint", { n: allAcademyPins.length })}
         </p>
       ) : null}
 
       <ResultMap pins={pins} />
 
-      <div className="grid gap-3">
+      <div className="grid gap-2.5">
         {layer === "academies"
           ? academies.map((academy) => (
-              <article
-                key={academy.id}
-                className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4"
-              >
+              <article key={academy.id} className="ui-card p-3.5">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-lg font-semibold">{academy.name}</h2>
-                  <span className="text-sm text-[var(--muted)]">
+                  <h2 className="text-[15px] font-semibold tracking-tight">
+                    {academy.name}
+                  </h2>
+                  <span className="text-[12px] text-[var(--muted)]">
                     {formatDistance(academy.distanceKm)}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-[var(--muted)]">
+                <p className="mt-1 text-[13px] text-[var(--muted)]">
                   {[academy.professorName, academy.neighborhood, academy.city, academy.state]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
                 {academy.nextClass ? (
-                  <p className="mt-2 text-sm">{academy.nextClass}</p>
+                  <p className="mt-1.5 text-[13px]">{academy.nextClass}</p>
                 ) : null}
                 {academy.acceptsVisitor ? (
-                  <p className="mt-2 text-sm">
-                    Aceita visitante
+                  <p className="mt-1.5 text-[13px]">
+                    {t("acceptsVisitor")}
                     {academy.dropInPrice ? ` · R$ ${academy.dropInPrice}` : ""}
                   </p>
                 ) : null}
               </article>
             ))
           : stores.map((store) => (
-              <article
-                key={store.id}
-                className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4"
-              >
+              <article key={store.id} className="ui-card p-3.5">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-lg font-semibold">{store.name}</h2>
-                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-1 text-xs font-semibold text-[var(--accent)]">
-                    Patrocinado
+                  <h2 className="text-[15px] font-semibold tracking-tight">
+                    {store.name}
+                  </h2>
+                  <span className="rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+                    {t("sponsored")}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-[var(--muted)]">
+                <p className="mt-1 text-[13px] text-[var(--muted)]">
                   {[store.category, store.city, formatDistance(store.distanceKm)]
                     .filter(Boolean)
                     .join(" · ")}
@@ -399,10 +413,10 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${
+      className={`min-h-9 rounded-lg border px-3 text-[13px] font-semibold transition ${
         active
           ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-          : "border-[var(--line)] bg-white"
+          : "border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--ink)]/20"
       }`}
     >
       {children}
@@ -423,8 +437,10 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-11 rounded-full px-4 text-sm ${
-        active ? "bg-[var(--ink)] text-white" : "bg-white border border-[var(--line)]"
+      className={`min-h-8 rounded-md px-3 text-[12px] font-medium transition ${
+        active
+          ? "bg-[var(--ink)] text-white"
+          : "border border-[var(--line)] bg-white text-[var(--muted)] hover:text-[var(--ink)]"
       }`}
     >
       {children}
@@ -434,27 +450,29 @@ function Chip({
 
 function Select({
   label,
+  selectLabel,
   value,
   options,
   disabled,
   onChange,
 }: {
   label: string;
+  selectLabel: string;
   value: string;
   options: { value: string; label: string }[];
   disabled?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex flex-col gap-1 text-[13px]">
       {label}
       <select
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3 disabled:opacity-50"
+        className="ui-input"
       >
-        <option value="">Selecione</option>
+        <option value="">{selectLabel}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

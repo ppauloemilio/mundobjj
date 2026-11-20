@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "@/components/locale-provider";
 
 type Country = { iso2: string; name: string };
 type StateRow = { isoCode: string; name: string };
@@ -22,6 +23,7 @@ export function LocationFields({
   /** Quando true, país vem de fora (ex.: AddressFields) */
   hideCountry?: boolean;
 }) {
+  const { locale, t } = useLocale();
   const [countries, setCountries] = useState<Country[]>([]);
   const [states, setStates] = useState<StateRow[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -44,10 +46,10 @@ export function LocationFields({
 
   useEffect(() => {
     if (hideCountry) return;
-    void fetch("/api/geo")
+    void fetch(`/api/geo?locale=${locale}`)
       .then((response) => response.json())
       .then((data: { countries: Country[] }) => setCountries(data.countries ?? []));
-  }, [hideCountry]);
+  }, [hideCountry, locale]);
 
   useEffect(() => {
     if (!country || country === OTHER) {
@@ -55,7 +57,7 @@ export function LocationFields({
       return;
     }
     let ignore = false;
-    void fetch(`/api/geo?country=${country}`)
+    void fetch(`/api/geo?country=${country}&locale=${locale}`)
       .then((response) => response.json())
       .then((data: { states: StateRow[] }) => {
         if (!ignore) setStates(data.states ?? []);
@@ -63,7 +65,7 @@ export function LocationFields({
     return () => {
       ignore = true;
     };
-  }, [country]);
+  }, [country, locale]);
 
   useEffect(() => {
     if (!country || !stateCode || stateCode === OTHER || country === OTHER) {
@@ -71,7 +73,7 @@ export function LocationFields({
       return;
     }
     let ignore = false;
-    void fetch(`/api/geo?country=${country}&state=${stateCode}`)
+    void fetch(`/api/geo?country=${country}&state=${stateCode}&locale=${locale}`)
       .then((response) => response.json())
       .then((data: { cities: City[] }) => {
         if (!ignore) setCities(data.cities ?? []);
@@ -79,10 +81,12 @@ export function LocationFields({
     return () => {
       ignore = true;
     };
-  }, [country, stateCode]);
+  }, [country, stateCode, locale]);
 
   return (
-    <div className={`grid gap-3 ${hideCountry ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+    <div
+      className={`grid gap-2.5 ${hideCountry ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}
+    >
       <input type="hidden" name="countryMode" value={countryOther ? "other" : "list"} />
       <input type="hidden" name="stateMode" value={stateOther ? "other" : "list"} />
       <input type="hidden" name="cityMode" value={cityOther ? "other" : "list"} />
@@ -97,8 +101,8 @@ export function LocationFields({
       ) : null}
 
       {hideCountry ? null : (
-        <label className="flex flex-col gap-1 text-sm">
-          País
+        <label className="flex flex-col gap-1 text-[13px]">
+          {t("country")}
           <select
             value={country}
             required={required}
@@ -111,15 +115,15 @@ export function LocationFields({
               setCustomState("");
               setCustomCity("");
             }}
-            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+            className="ui-input"
           >
-            <option value="">Selecione</option>
+            <option value="">{t("searchSelect")}</option>
             {countries.map((item) => (
               <option key={item.iso2} value={item.iso2}>
                 {item.name}
               </option>
             ))}
-            <option value={OTHER}>Outro</option>
+            <option value={OTHER}>{t("other")}</option>
           </select>
           {countryOther ? (
             <input
@@ -127,15 +131,15 @@ export function LocationFields({
               value={customCountry}
               onChange={(event) => setCustomCountry(event.target.value)}
               required={required}
-              placeholder="Digite o país"
-              className="mt-2 min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+              placeholder={t("customCountry")}
+              className="ui-input mt-1.5"
             />
           ) : null}
         </label>
       )}
 
-      <label className="flex flex-col gap-1 text-sm">
-        Estado
+      <label className="flex flex-col gap-1 text-[13px]">
+        {t("state")}
         <select
           value={stateCode}
           required={required && Boolean(country)}
@@ -146,9 +150,9 @@ export function LocationFields({
             setCities([]);
             setCustomCity("");
           }}
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3 disabled:opacity-50"
+          className="ui-input"
         >
-          <option value="">Selecione</option>
+          <option value="">{t("searchSelect")}</option>
           {!countryOther
             ? states.map((item) => (
                 <option key={item.isoCode} value={item.isoCode}>
@@ -156,7 +160,7 @@ export function LocationFields({
                 </option>
               ))
             : null}
-          <option value={OTHER}>Outro</option>
+          <option value={OTHER}>{t("other")}</option>
         </select>
         {stateOther ? (
           <input
@@ -164,22 +168,22 @@ export function LocationFields({
             value={customState}
             onChange={(event) => setCustomState(event.target.value)}
             required={required}
-            placeholder="Digite o estado"
-            className="mt-2 min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+            placeholder={t("customState")}
+            className="ui-input mt-1.5"
           />
         ) : null}
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Cidade
+      <label className="flex flex-col gap-1 text-[13px]">
+        {t("city")}
         <select
           value={cityName}
           required={required && Boolean(stateCode)}
           disabled={!stateCode}
           onChange={(event) => setCityName(event.target.value)}
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3 disabled:opacity-50"
+          className="ui-input"
         >
-          <option value="">Selecione</option>
+          <option value="">{t("searchSelect")}</option>
           {!stateOther
             ? cities.map((item) => (
                 <option key={item.name} value={item.name}>
@@ -187,7 +191,7 @@ export function LocationFields({
                 </option>
               ))
             : null}
-          <option value={OTHER}>Outro</option>
+          <option value={OTHER}>{t("other")}</option>
         </select>
         {cityOther ? (
           <input
@@ -195,8 +199,8 @@ export function LocationFields({
             value={customCity}
             onChange={(event) => setCustomCity(event.target.value)}
             required={required}
-            placeholder="Digite a cidade"
-            className="mt-2 min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+            placeholder={t("customCity")}
+            className="ui-input mt-1.5"
           />
         ) : null}
       </label>

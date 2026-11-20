@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LocationFields } from "@/components/location-fields";
+import { useLocale } from "@/components/locale-provider";
 
 type AddressValues = {
   countryIso2?: string | null;
@@ -27,6 +28,7 @@ export function AddressFields({
   initial?: AddressValues;
   required?: boolean;
 }) {
+  const { locale, t } = useLocale();
   const [country, setCountry] = useState(initial?.countryIso2 || "");
   const [countries, setCountries] = useState<{ iso2: string; name: string }[]>(
     [],
@@ -46,18 +48,18 @@ export function AddressFields({
   const isBrazil = country === "BR";
 
   useEffect(() => {
-    void fetch("/api/geo")
+    void fetch(`/api/geo?locale=${locale}`)
       .then((response) => response.json())
       .then((data: { countries: { iso2: string; name: string }[] }) =>
         setCountries(data.countries ?? []),
       );
-  }, []);
+  }, [locale]);
 
   async function lookupCep(nextCep: string) {
     const digits = nextCep.replace(/\D/g, "");
     if (digits.length !== 8) return;
     setCepLoading(true);
-    setCepStatus("Buscando CEP...");
+    setCepStatus(t("cepLooking"));
     try {
       const response = await fetch(`/api/cep?cep=${digits}`);
       const data = (await response.json()) as {
@@ -68,25 +70,25 @@ export function AddressFields({
         stateCode?: string;
       };
       if (!response.ok || data.error) {
-        setCepStatus(data.error || "CEP não encontrado.");
+        setCepStatus(data.error || t("cepNotFound"));
         return;
       }
       setStreet(data.street || "");
       setNeighborhood(data.neighborhood || "");
       setStateCode(data.stateCode || "");
       setCityName(data.city || "");
-      setCepStatus("Endereço preenchido. Confira e complete o número.");
+      setCepStatus(t("cepFilled"));
     } catch {
-      setCepStatus("Falha ao consultar CEP.");
+      setCepStatus(t("cepFail"));
     } finally {
       setCepLoading(false);
     }
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-sm">
-        País
+    <div className="flex flex-col gap-2.5">
+      <label className="flex flex-col gap-1 text-[13px]">
+        {t("country")}
         <select
           value={country}
           required={required}
@@ -100,9 +102,9 @@ export function AddressFields({
             setStreet("");
             setNeighborhood("");
           }}
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+          className="ui-input"
         >
-          <option value="">Selecione</option>
+          <option value="">{t("searchSelect")}</option>
           {countries.map((item) => (
             <option key={item.iso2} value={item.iso2}>
               {item.name}
@@ -112,10 +114,7 @@ export function AddressFields({
       </label>
 
       {!country ? (
-        <p className="text-sm text-[var(--muted)]">
-          Selecione o país. No Brasil usamos CEP; nos demais, estado e cidade da
-          base mundial (country-state-city).
-        </p>
+        <p className="text-[12px] text-[var(--muted)]">{t("addressCountryHint")}</p>
       ) : null}
 
       {isBrazil ? (
@@ -127,8 +126,8 @@ export function AddressFields({
           <input type="hidden" name="stateCode" value={stateCode} />
           <input type="hidden" name="cityName" value={cityName} />
 
-          <label className="flex flex-col gap-1 text-sm">
-            CEP
+          <label className="flex flex-col gap-1 text-[13px]">
+            {t("postalCode")}
             <input
               name="postalCode"
               value={cep}
@@ -142,29 +141,29 @@ export function AddressFields({
                   void lookupCep(next);
                 }
               }}
-              className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+              className="ui-input"
             />
             {cepStatus ? (
-              <span className="text-xs text-[var(--muted)]">
-                {cepLoading ? "Buscando..." : cepStatus}
+              <span className="text-[11px] text-[var(--muted)]">
+                {cepLoading ? t("cepLooking") : cepStatus}
               </span>
             ) : null}
           </label>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ReadOnlyField label="Estado (UF)" value={stateCode} />
-            <ReadOnlyField label="Cidade" value={cityName} />
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <ReadOnlyField label={t("stateUf")} value={stateCode} />
+            <ReadOnlyField label={t("city")} value={cityName} />
           </div>
 
           <TextField
-            label="Rua / logradouro"
+            label={t("street")}
             name="street"
             value={street}
             onChange={setStreet}
             required={required}
           />
           <TextField
-            label="Bairro"
+            label={t("neighborhood")}
             name="neighborhood"
             value={neighborhood}
             onChange={setNeighborhood}
@@ -175,7 +174,7 @@ export function AddressFields({
       {country && !isBrazil ? (
         <>
           <LocationFields
-            key={country}
+            key={`${country}-${locale}`}
             hideCountry
             initialCountryIso2={country}
             initialStateCode={stateCode}
@@ -183,14 +182,14 @@ export function AddressFields({
             required={required}
           />
           <TextField
-            label="Rua / logradouro"
+            label={t("street")}
             name="street"
             value={street}
             onChange={setStreet}
             required={required}
           />
           <TextField
-            label="Bairro"
+            label={t("neighborhood")}
             name="neighborhood"
             value={neighborhood}
             onChange={setNeighborhood}
@@ -199,20 +198,20 @@ export function AddressFields({
       ) : null}
 
       {country ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-2.5 sm:grid-cols-2">
           <TextField
-            label="Número"
+            label={t("streetNumber")}
             name="streetNumber"
             value={streetNumber}
             onChange={setStreetNumber}
             required={required}
           />
           <TextField
-            label="Complemento"
+            label={t("complement")}
             name="complement"
             value={complement}
             onChange={setComplement}
-            placeholder="Apto, sala, bloco..."
+            placeholder={t("complementPlaceholder")}
           />
         </div>
       ) : null}
@@ -222,12 +221,12 @@ export function AddressFields({
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex flex-col gap-1 text-[13px]">
       {label}
       <input
         value={value}
         readOnly
-        className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--accent-soft)] px-3"
+        className="ui-input bg-[var(--accent-soft)]"
       />
     </label>
   );
@@ -249,7 +248,7 @@ function TextField({
   placeholder?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex flex-col gap-1 text-[13px]">
       {label}
       <input
         name={name}
@@ -257,7 +256,7 @@ function TextField({
         required={required}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+        className="ui-input"
       />
     </label>
   );

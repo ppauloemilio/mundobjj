@@ -1,27 +1,96 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f1ea;
-  --foreground: #1c1915;
-  --ink: #1c1915;
-  --paper: #f7f1e8;
-  --card: #fffdf8;
-  --line: #e4ddd0;
-  --muted: #6d645b;
-  --accent: #9f2d2d;
-  --accent-soft: #f8e6e2;
-  --accent-2: #e7b989;
+  --background: #f5f6f8;
+  --foreground: #12151a;
+  --ink: #12151a;
+  --paper: #fbfbfc;
+  --card: #ffffff;
+  --line: #e6e8ec;
+  --muted: #6b7280;
+  --accent: #b4232e;
+  --accent-soft: #f8e9eb;
+  --accent-2: #8b939e;
+  --shadow: 0 1px 2px rgba(18, 21, 26, 0.04), 0 8px 24px rgba(18, 21, 26, 0.04);
+  --radius: 0.75rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-manrope);
+  --font-display: var(--font-sora);
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, rgba(180, 35, 46, 0.06), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, rgba(18, 21, 26, 0.05), transparent 50%),
+    var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.font-display {
+  font-family: var(--font-sora), var(--font-manrope), system-ui, sans-serif;
+}
+
+.ui-input {
+  min-height: 2.375rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ui-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.ui-input:disabled {
+  opacity: 0.5;
+}
+
+.ui-card {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.ui-btn {
+  min-height: 2.375rem;
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.ui-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ui-btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.ui-btn-primary:disabled {
+  opacity: 0.55;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  backdrop-filter: blur(10px);
 }
