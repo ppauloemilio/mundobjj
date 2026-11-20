@@ -6,6 +6,7 @@ import {
   academyAccessRequests,
   academySuggestions,
   locationSuggestions,
+  professorSuggestions,
   users,
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
@@ -23,6 +24,7 @@ export default async function AdminPage() {
     [blockedAcademies],
     [pendingLocations],
     [pendingAcademies],
+    [pendingProfessors],
     [pendingAccess],
   ] = await Promise.all([
     db.select({ value: count() }).from(users),
@@ -40,6 +42,10 @@ export default async function AdminPage() {
       .select({ value: count() })
       .from(academySuggestions)
       .where(eq(academySuggestions.status, "pending")),
+    db
+      .select({ value: count() })
+      .from(professorSuggestions)
+      .where(eq(professorSuggestions.status, "pending")),
     db
       .select({ value: count() })
       .from(academyAccessRequests)
@@ -61,9 +67,12 @@ export default async function AdminPage() {
     },
     {
       label: "Sugestões pendentes",
-      value: pendingLocations.value + pendingAcademies.value,
+      value:
+        pendingLocations.value +
+        pendingAcademies.value +
+        pendingProfessors.value,
       href: "/admin/sugestoes",
-      detail: `${pendingLocations.value} locais · ${pendingAcademies.value} academias`,
+      detail: `${pendingLocations.value} locais · ${pendingAcademies.value} academias · ${pendingProfessors.value} professores`,
     },
   ];
 

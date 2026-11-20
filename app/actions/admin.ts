@@ -11,6 +11,10 @@ import {
   readLocationFromForm,
   saveLocationSuggestions,
 } from "@/lib/location-input";
+import {
+  readProfessorFromForm,
+  resolveResponsibleProfessor,
+} from "@/lib/professor-input";
 import { requireAdmin } from "@/lib/session";
 import { uniqueSlug } from "@/lib/slug";
 import {
@@ -244,7 +248,6 @@ export async function createAcademyAdminAction(
   const parsed = z
     .object({
       name: z.string().trim().min(2, "Informe o nome da academia."),
-      professorName: z.string().trim().optional(),
       whatsapp: z.string().trim().optional(),
       address: z.string().trim().min(5, "Informe o endereço."),
       neighborhood: z.string().trim().optional(),
@@ -253,7 +256,6 @@ export async function createAcademyAdminAction(
     })
     .safeParse({
       name: formData.get("name"),
-      professorName: formData.get("professorName") || "",
       whatsapp: formData.get("whatsapp") || "",
       address: formData.get("address"),
       neighborhood: formData.get("neighborhood") || "",
@@ -263,6 +265,14 @@ export async function createAcademyAdminAction(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const professorInput = readProfessorFromForm(formData);
+  if (
+    professorInput.professorMode === "other" &&
+    professorInput.suggestedProfessorName.length < 2
+  ) {
+    return { error: "Informe o nome do professor ou escolha na lista." };
   }
 
   const location = readLocationFromForm(formData);
@@ -311,7 +321,10 @@ export async function createAcademyAdminAction(
       slug: uniqueSlug(parsed.data.name),
       name: parsed.data.name,
       affiliation: parsed.data.affiliation || null,
-      professorName: parsed.data.professorName || null,
+      professorName:
+        professorInput.professorMode === "other"
+          ? professorInput.suggestedProfessorName
+          : null,
       whatsapp: parsed.data.whatsapp || null,
       address: parsed.data.address,
       neighborhood: parsed.data.neighborhood || null,
@@ -321,10 +334,26 @@ export async function createAcademyAdminAction(
       acceptsVisitor: Boolean(parsed.data.acceptsVisitor),
       ownerId: null,
     })
-    .returning({ slug: academies.slug });
+    .returning({ id: academies.id, slug: academies.slug });
+
+  const professor = await resolveResponsibleProfessor(db, {
+    ...professorInput,
+    academyId: created.id,
+    academyName: parsed.data.name,
+    userId: admin.id,
+    contact: parsed.data.whatsapp || null,
+  });
+
+  if (professor.professorName) {
+    await db
+      .update(academies)
+      .set({ professorName: professor.professorName })
+      .where(eq(academies.id, created.id));
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/academias");
+  revalidatePath("/admin/sugestoes");
   revalidatePath("/");
   return {
     success: `Academia cadastrada (${created.slug}). Sem dono ainda — o responsável pode solicitar acesso na ficha pública.`,
@@ -335,13 +364,12 @@ export async function updateAcademyAdminAction(
   _prev: AdminFormState,
   formData: FormData,
 ): Promise<AdminFormState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const parsed = z
     .object({
       academyId: z.string().uuid(),
       name: z.string().trim().min(2),
-      professorName: z.string().trim().optional(),
       whatsapp: z.string().trim().optional(),
       address: z.string().trim().optional(),
       acceptsVisitor: z.coerce.boolean().optional(),
@@ -349,7 +377,6 @@ export async function updateAcademyAdminAction(
     .safeParse({
       academyId: formData.get("academyId"),
       name: formData.get("name"),
-      professorName: formData.get("professorName") || "",
       whatsapp: formData.get("whatsapp") || "",
       address: formData.get("address") || "",
       acceptsVisitor: formData.get("acceptsVisitor") === "on",
@@ -359,12 +386,35 @@ export async function updateAcademyAdminAction(
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
+  const professorInput = readProfessorFromForm(formData);
   const db = requireDb();
+  const touchedProfessor =
+    professorInput.professorMode === "other" ||
+    Boolean(professorInput.professorProfileId);
+
+  let professorName: string | null | undefined;
+  if (touchedProfessor) {
+    if (
+      professorInput.professorMode === "other" &&
+      professorInput.suggestedProfessorName.length < 2
+    ) {
+      return { error: "Informe o nome do professor ou escolha na lista." };
+    }
+    const professor = await resolveResponsibleProfessor(db, {
+      ...professorInput,
+      academyId: parsed.data.academyId,
+      academyName: parsed.data.name,
+      userId: admin.id,
+      contact: parsed.data.whatsapp || null,
+    });
+    professorName = professor.professorName;
+  }
+
   await db
     .update(academies)
     .set({
       name: parsed.data.name,
-      professorName: parsed.data.professorName || null,
+      ...(touchedProfessor ? { professorName: professorName ?? null } : {}),
       whatsapp: parsed.data.whatsapp || null,
       address: parsed.data.address || null,
       acceptsVisitor: Boolean(parsed.data.acceptsVisitor),
@@ -373,6 +423,7 @@ export async function updateAcademyAdminAction(
 
   revalidatePath("/admin");
   revalidatePath("/admin/academias");
+  revalidatePath("/admin/sugestoes");
   revalidatePath("/");
   return { success: "Academia atualizada." };
 }

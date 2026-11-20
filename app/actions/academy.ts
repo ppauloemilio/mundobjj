@@ -11,6 +11,10 @@ import {
   readLocationFromForm,
   saveLocationSuggestions,
 } from "@/lib/location-input";
+import {
+  readProfessorFromForm,
+  resolveResponsibleProfessor,
+} from "@/lib/professor-input";
 import { requireUser } from "@/lib/session";
 import { slugify, uniqueSlug } from "@/lib/slug";
 
@@ -18,7 +22,6 @@ const academySchema = z.object({
   id: z.string().uuid().optional().or(z.literal("")),
   name: z.string().trim().min(2),
   affiliation: z.string().trim().optional(),
-  professorName: z.string().trim().optional(),
   whatsapp: z.string().trim().optional(),
   address: z.string().trim().min(5),
   neighborhood: z.string().trim().optional(),
@@ -41,7 +44,6 @@ export async function saveAcademyAction(
     id: formData.get("id") || "",
     name: formData.get("name"),
     affiliation: formData.get("affiliation") || "",
-    professorName: formData.get("professorName") || "",
     whatsapp: formData.get("whatsapp") || "",
     address: formData.get("address"),
     neighborhood: formData.get("neighborhood") || "",
@@ -52,6 +54,14 @@ export async function saveAcademyAction(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const professorInput = readProfessorFromForm(formData);
+  if (
+    professorInput.professorMode === "other" &&
+    professorInput.suggestedProfessorName.length < 2
+  ) {
+    return { error: "Informe o nome do professor ou escolha na lista." };
   }
 
   const db = requireDb();
@@ -95,10 +105,28 @@ export async function saveAcademyAction(
 
   const coords = await geocodeAddress(query);
 
+  let academyId = parsed.data.id || "";
+  let slug = "";
+
+  if (academyId) {
+    const [owned] = await db
+      .select()
+      .from(academies)
+      .where(and(eq(academies.id, academyId), eq(academies.ownerId, user.id)))
+      .limit(1);
+    if (!owned) return { error: "Academia não encontrada." };
+    slug = owned.slug;
+  }
+
+  const provisionalName =
+    professorInput.professorMode === "other"
+      ? professorInput.suggestedProfessorName || null
+      : null;
+
   const values = {
     name: parsed.data.name,
     affiliation: parsed.data.affiliation || null,
-    professorName: parsed.data.professorName || null,
+    professorName: provisionalName,
     whatsapp: parsed.data.whatsapp || null,
     address: parsed.data.address,
     neighborhood: parsed.data.neighborhood || null,
@@ -111,18 +139,7 @@ export async function saveAcademyAction(
     ownerId: user.id,
   };
 
-  let academyId = parsed.data.id || "";
-  let slug = "";
-
   if (academyId) {
-    const [owned] = await db
-      .select()
-      .from(academies)
-      .where(and(eq(academies.id, academyId), eq(academies.ownerId, user.id)))
-      .limit(1);
-    if (!owned) return { error: "Academia não encontrada." };
-
-    slug = owned.slug;
     await db.update(academies).set(values).where(eq(academies.id, academyId));
   } else {
     slug = uniqueSlug(parsed.data.name);
@@ -132,6 +149,21 @@ export async function saveAcademyAction(
       .returning({ id: academies.id, slug: academies.slug });
     academyId = created.id;
     slug = created.slug;
+  }
+
+  const professor = await resolveResponsibleProfessor(db, {
+    ...professorInput,
+    academyId,
+    academyName: parsed.data.name,
+    userId: user.id,
+    contact: parsed.data.whatsapp || user.email || null,
+  });
+
+  if (professor.professorName !== provisionalName) {
+    await db
+      .update(academies)
+      .set({ professorName: professor.professorName })
+      .where(eq(academies.id, academyId));
   }
 
   await db.delete(classSchedules).where(eq(classSchedules.academyId, academyId));

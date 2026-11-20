@@ -403,6 +403,22 @@ export const academySuggestions = pgTable("academy_suggestions", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
+export const professorSuggestions = pgTable("professor_suggestions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  academyId: uuid("academy_id").references(() => academies.id, {
+    onDelete: "set null",
+  }),
+  academyName: text("academy_name"),
+  contact: text("contact"),
+  notes: text("notes"),
+  suggestedByUserId: text("suggested_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  status: suggestionStatusEnum("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
 export const academyAccessRequests = pgTable(
   "academy_access_requests",
   {

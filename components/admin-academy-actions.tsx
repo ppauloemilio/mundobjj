@@ -10,6 +10,7 @@ import {
   updateAcademyAdminAction,
   type AdminFormState,
 } from "@/app/actions/admin";
+import { ResponsibleProfessorSelect } from "@/components/responsible-professor-select";
 
 const initial: AdminFormState = {};
 const accessInitial: AccessFormState = {};
@@ -55,15 +56,12 @@ export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
             className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Professor
-          <input
-            name="professorName"
-            defaultValue={academy.professorName ?? ""}
-            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+        <div className="sm:col-span-2">
+          <ResponsibleProfessorSelect
+            initialProfessorName={academy.professorName ?? ""}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
+        </div>
+        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
           WhatsApp
           <input
             name="whatsapp"

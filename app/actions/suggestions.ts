@@ -4,10 +4,12 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/db";
 import {
+  academies,
   academySuggestions,
   cities,
   countries,
   locationSuggestions,
+  professorSuggestions,
   states,
 } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
@@ -153,6 +155,50 @@ export async function rejectAcademySuggestionAction(formData: FormData) {
     .update(academySuggestions)
     .set({ status: "rejected" })
     .where(eq(academySuggestions.id, id));
+  revalidatePath("/admin/sugestoes");
+  revalidatePath("/admin");
+}
+
+export async function approveProfessorSuggestionAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+
+  const db = requireDb();
+  const [row] = await db
+    .select()
+    .from(professorSuggestions)
+    .where(eq(professorSuggestions.id, id))
+    .limit(1);
+
+  if (!row || row.status !== "pending") return;
+
+  if (row.academyId) {
+    await db
+      .update(academies)
+      .set({ professorName: row.name })
+      .where(eq(academies.id, row.academyId));
+  }
+
+  await db
+    .update(professorSuggestions)
+    .set({ status: "approved" })
+    .where(eq(professorSuggestions.id, id));
+
+  revalidatePath("/admin/sugestoes");
+  revalidatePath("/admin");
+  revalidatePath("/admin/academias");
+}
+
+export async function rejectProfessorSuggestionAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const db = requireDb();
+  await db
+    .update(professorSuggestions)
+    .set({ status: "rejected" })
+    .where(eq(professorSuggestions.id, id));
   revalidatePath("/admin/sugestoes");
   revalidatePath("/admin");
 }

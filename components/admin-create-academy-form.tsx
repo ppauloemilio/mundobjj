@@ -6,6 +6,7 @@ import {
   type AdminFormState,
 } from "@/app/actions/admin";
 import { LocationFields } from "@/components/location-fields";
+import { ResponsibleProfessorSelect } from "@/components/responsible-professor-select";
 
 const initial: AdminFormState = {};
 
@@ -34,22 +35,14 @@ export function AdminCreateAcademyForm() {
           className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
         />
       </label>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Professor
-          <input
-            name="professorName"
-            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          WhatsApp
-          <input
-            name="whatsapp"
-            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-          />
-        </label>
-      </div>
+      <ResponsibleProfessorSelect />
+      <label className="flex flex-col gap-1 text-sm">
+        WhatsApp
+        <input
+          name="whatsapp"
+          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+        />
+      </label>
       <label className="flex flex-col gap-1 text-sm">
         Endereço
         <input

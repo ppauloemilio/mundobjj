@@ -6,6 +6,7 @@ import {
   type AcademyFormState,
 } from "@/app/actions/academy";
 import { LocationFields } from "@/components/location-fields";
+import { ResponsibleProfessorSelect } from "@/components/responsible-professor-select";
 import { classKindLabel } from "@/lib/labels";
 
 const initial: AcademyFormState = {};
@@ -78,29 +79,9 @@ export function AcademyForm({
         name="affiliation"
         defaultValue={academy?.affiliation ?? ""}
       />
-      {professors.length ? (
-        <label className="flex flex-col gap-1 text-sm">
-          Professor responsável (legado)
-          <select
-            name="professorName"
-            defaultValue={academy?.professorName ?? ""}
-            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-          >
-            <option value="">Nenhum</option>
-            {professors.map((professor) => (
-              <option key={professor.id} value={professor.name}>
-                {professor.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <Field
-          label="Professor responsável"
-          name="professorName"
-          defaultValue={academy?.professorName ?? ""}
-        />
-      )}
+      <ResponsibleProfessorSelect
+        initialProfessorName={academy?.professorName ?? ""}
+      />
       <Field label="WhatsApp" name="whatsapp" defaultValue={academy?.whatsapp ?? ""} />
       <Field
         label="Endereço"

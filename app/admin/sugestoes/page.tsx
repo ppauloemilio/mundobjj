@@ -2,11 +2,17 @@ import { desc, eq } from "drizzle-orm";
 import {
   approveAcademySuggestionAction,
   approveLocationSuggestionAction,
+  approveProfessorSuggestionAction,
   rejectAcademySuggestionAction,
   rejectLocationSuggestionAction,
+  rejectProfessorSuggestionAction,
 } from "@/app/actions/suggestions";
 import { requireDb } from "@/db";
-import { academySuggestions, locationSuggestions } from "@/db/schema";
+import {
+  academySuggestions,
+  locationSuggestions,
+  professorSuggestions,
+} from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
 
 export const instant = false;
@@ -15,7 +21,7 @@ export default async function AdminSugestoesPage() {
   await requireAdmin();
   const db = requireDb();
 
-  const [locations, academies] = await Promise.all([
+  const [locations, academies, professors] = await Promise.all([
     db
       .select()
       .from(locationSuggestions)
@@ -26,6 +32,11 @@ export default async function AdminSugestoesPage() {
       .from(academySuggestions)
       .where(eq(academySuggestions.status, "pending"))
       .orderBy(desc(academySuggestions.createdAt)),
+    db
+      .select()
+      .from(professorSuggestions)
+      .where(eq(professorSuggestions.status, "pending"))
+      .orderBy(desc(professorSuggestions.createdAt)),
   ]);
 
   return (
@@ -108,6 +119,51 @@ export default async function AdminSugestoesPage() {
                   </button>
                 </form>
                 <form action={rejectAcademySuggestionAction}>
+                  <input type="hidden" name="id" value={item.id} />
+                  <button
+                    type="submit"
+                    className="min-h-11 rounded-full border border-[var(--line)] px-4 text-sm"
+                  >
+                    Recusar
+                  </button>
+                </form>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-xl font-semibold">Professores sugeridos</h2>
+        <p className="text-sm text-[var(--muted)]">
+          Nomes informados como &quot;Outro&quot; no cadastro da academia.
+          Aprove para confirmar na ficha ou contate para criar conta de
+          professor.
+        </p>
+        {professors.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">Nenhuma sugestão pendente.</p>
+        ) : (
+          professors.map((item) => (
+            <article
+              key={item.id}
+              className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4"
+            >
+              <p className="font-medium">{item.name}</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                {[item.academyName, item.contact].filter(Boolean).join(" · ") ||
+                  "Sem academia/contato extra"}
+              </p>
+              <div className="mt-3 flex gap-2">
+                <form action={approveProfessorSuggestionAction}>
+                  <input type="hidden" name="id" value={item.id} />
+                  <button
+                    type="submit"
+                    className="min-h-11 rounded-full bg-[var(--ink)] px-4 text-sm font-semibold text-white"
+                  >
+                    Aprovar
+                  </button>
+                </form>
+                <form action={rejectProfessorSuggestionAction}>
                   <input type="hidden" name="id" value={item.id} />
                   <button
                     type="submit"
