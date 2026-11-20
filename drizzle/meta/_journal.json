@@ -71,6 +71,13 @@
       "when": 1795172897719,
       "tag": "0009_messy_george_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795178354174,
+      "tag": "0010_shiny_secret_warriors",
+      "breakpoints": true
     }
   ]
 }

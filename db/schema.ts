@@ -196,6 +196,7 @@ export const profiles = pgTable("profiles", {
     .notNull()
     .default(false),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  onboardingCompletedAt: timestamp("onboarding_completed_at", { mode: "date" }),
 });
 
 export const academies = pgTable(

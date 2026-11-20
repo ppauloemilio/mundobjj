@@ -1,6 +1,5 @@
 "use client";
 
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { useLocale } from "@/components/locale-provider";
 
 export function HomeHero() {
@@ -16,13 +15,10 @@ export function HomeHero() {
             "radial-gradient(700px 280px at 15% 20%, rgba(180,35,46,0.35), transparent 60%), radial-gradient(500px 240px at 85% 10%, rgba(255,255,255,0.08), transparent 55%)",
         }}
       />
-      <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-8 sm:px-6 sm:py-10">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold tracking-[0.2em] text-white/55 uppercase">
-            {t("homeEyebrow")}
-          </p>
-          <LanguageSwitcher />
-        </div>
+      <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-8 sm:px-6 sm:py-10">
+        <p className="text-[11px] font-semibold tracking-[0.2em] text-white/55 uppercase">
+          {t("homeEyebrow")}
+        </p>
         <h1 className="font-display max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">
           {t("homeTitle")}
         </h1>

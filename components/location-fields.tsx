@@ -39,10 +39,16 @@ export function LocationFields({
   const cityOther = cityName === OTHER;
 
   useEffect(() => {
-    if (hideCountry && initialCountryIso2) {
-      setCountry(initialCountryIso2);
-    }
-  }, [hideCountry, initialCountryIso2]);
+    if (initialCountryIso2) setCountry(initialCountryIso2);
+  }, [initialCountryIso2]);
+
+  useEffect(() => {
+    if (initialStateCode) setStateCode(initialStateCode);
+  }, [initialStateCode]);
+
+  useEffect(() => {
+    if (initialCityName) setCityName(initialCityName);
+  }, [initialCityName]);
 
   useEffect(() => {
     if (hideCountry) return;

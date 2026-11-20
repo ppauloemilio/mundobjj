@@ -4,7 +4,7 @@ import { compare } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { profiles, users } from "@/db/schema";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -84,5 +84,30 @@ export function homePathForUser(user: {
   if (user.role === "admin" || user.accountType === "admin") return "/admin";
   if (user.accountType === "academy") return "/painel/academia";
   if (user.accountType === "professor") return "/painel/professor";
+  return "/painel";
+}
+
+/** Login de quem já completou o onboarding → home; senão → painel. */
+export async function postLoginPathForUser(user: {
+  id?: string;
+  role?: string | null;
+  accountType?: string | null;
+}) {
+  if (user.role === "admin" || user.accountType === "admin") return "/admin";
+  if (user.accountType === "academy") return "/painel/academia";
+  if (user.accountType === "professor") return "/painel/professor";
+
+  if (user.id) {
+    const db = getDb();
+    if (db) {
+      const [profile] = await db
+        .select({ done: profiles.onboardingCompletedAt })
+        .from(profiles)
+        .where(eq(profiles.userId, user.id))
+        .limit(1);
+      if (profile?.done) return "/";
+    }
+  }
+
   return "/painel";
 }

@@ -77,26 +77,20 @@ export default async function AdminPage() {
   ];
 
   return (
-    <section className="flex flex-col gap-4">
-      <p className="text-sm text-[var(--muted)]">
-        Esta área é só da conta de administração. Se você também treina, use
-        outro e-mail e cadastre-se como praticante em /cadastro/atleta — são
-        logins separados. Academias na busca são cadastradas aqui; sugestões
-        vêm de quem escolheu &quot;Outro&quot; em local ou academia.
-      </p>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {cards.map((card) => (
-          <Link
-            key={card.label}
-            href={card.href}
-            className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-5"
-          >
-            <p className="text-sm text-[var(--muted)]">{card.label}</p>
-            <p className="mt-2 text-3xl font-semibold">{card.value}</p>
-            <p className="mt-1 text-sm text-[var(--muted)]">{card.detail}</p>
-          </Link>
-        ))}
-      </div>
+    <section className="grid gap-3 sm:grid-cols-3">
+      {cards.map((card) => (
+        <Link
+          key={card.label}
+          href={card.href}
+          className="ui-card p-4 transition hover:border-[var(--accent)]/35"
+        >
+          <p className="text-[12px] text-[var(--muted)]">{card.label}</p>
+          <p className="mt-1.5 text-2xl font-semibold tracking-tight">
+            {card.value}
+          </p>
+          <p className="mt-1 text-[12px] text-[var(--muted)]">{card.detail}</p>
+        </Link>
+      ))}
     </section>
   );
 }

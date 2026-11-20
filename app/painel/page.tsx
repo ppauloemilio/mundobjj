@@ -47,12 +47,15 @@ export default async function PainelPage() {
     : [undefined];
 
   const place = await getCitySelection(profile.cityId);
+  const needsOnboarding = !profile.onboardingCompletedAt;
 
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Meu perfil</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <h1 className="font-display text-2xl font-semibold tracking-tight">
+          {needsOnboarding ? "Complete seu perfil" : "Meu perfil"}
+        </h1>
+        <p className="mt-1.5 text-[13px] text-[var(--muted)]">
           Perfil público:{" "}
           <Link href={`/atleta/${profile.slug}`} className="underline">
             /atleta/{profile.slug}
@@ -60,6 +63,7 @@ export default async function PainelPage() {
         </p>
       </div>
       <ProfileForm
+        showHomeCta={needsOnboarding}
         profile={{
           name: profile.name,
           slug: profile.slug,
@@ -78,6 +82,7 @@ export default async function PainelPage() {
           startedAt: profile.startedAt,
           whatsapp: profile.whatsapp,
           contactEmail: profile.contactEmail,
+          accountEmail: user.email,
           showWhatsapp: profile.showWhatsapp,
           showEmail: profile.showEmail,
         }}

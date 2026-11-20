@@ -72,6 +72,7 @@ async function createAccount(input: {
       userId,
       name: input.name,
       slug: uniqueSlug(input.name),
+      contactEmail: email,
     })
     .returning();
 
@@ -289,6 +290,7 @@ export async function loginAction(
   const email = parsed.data.email.toLowerCase();
   const [user] = await db
     .select({
+      id: users.id,
       role: users.role,
       accountType: users.accountType,
       blockedAt: users.blockedAt,
@@ -302,7 +304,8 @@ export async function loginAction(
     return { error: "E-mail ou senha incorretos." };
   }
 
-  const redirectTo = homePathForUser(user);
+  const { postLoginPathForUser } = await import("@/auth");
+  const redirectTo = await postLoginPathForUser(user);
 
   try {
     await signIn("credentials", {
