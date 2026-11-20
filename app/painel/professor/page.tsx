@@ -11,6 +11,7 @@ import {
   athleteProfessors,
   profiles,
 } from "@/db/schema";
+import { getCitySelection } from "@/lib/location-input";
 import { getProfileForUser, requireUser } from "@/lib/session";
 
 export const instant = false;
@@ -55,6 +56,8 @@ export default async function PainelProfessorPage() {
     )
     .orderBy(asc(profiles.name));
 
+  const place = await getCitySelection(profile.cityId);
+
   return (
     <section className="flex flex-col gap-8">
       <div>
@@ -73,6 +76,9 @@ export default async function PainelProfessorPage() {
           name: profile.name,
           slug: profile.slug,
           cityId: profile.cityId,
+          countryIso2: place?.countryIso2,
+          stateCode: place?.stateCode,
+          cityName: place?.cityName,
           academyId: null,
           professorProfileId: null,
           belt: profile.belt,

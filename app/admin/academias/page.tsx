@@ -7,6 +7,7 @@ import {
   academies,
   academyAccessRequests,
 } from "@/db/schema";
+import { getCitySelection } from "@/lib/location-input";
 import { requireAdmin } from "@/lib/session";
 
 export const instant = false;
@@ -54,22 +55,35 @@ export default async function AdminAcademiasPage() {
             Nenhuma academia cadastrada.
           </p>
         ) : (
-          rows.map((academy) => (
-            <AdminAcademyCard
-              key={academy.id}
-              academy={{
-                id: academy.id,
-                name: academy.name,
-                slug: academy.slug,
-                professorName: academy.professorName,
-                whatsapp: academy.whatsapp,
-                address: academy.address,
-                acceptsVisitor: academy.acceptsVisitor,
-                blockedAt: academy.blockedAt,
-                ownerId: academy.ownerId,
-              }}
-            />
-          ))
+          await Promise.all(
+            rows.map(async (academy) => {
+              const place = await getCitySelection(academy.cityId);
+              return (
+                <AdminAcademyCard
+                  key={academy.id}
+                  academy={{
+                    id: academy.id,
+                    name: academy.name,
+                    slug: academy.slug,
+                    professorName: academy.professorName,
+                    whatsapp: academy.whatsapp,
+                    address: academy.address,
+                    postalCode: academy.postalCode,
+                    street: academy.street,
+                    streetNumber: academy.streetNumber,
+                    complement: academy.complement,
+                    neighborhood: academy.neighborhood,
+                    countryIso2: place?.countryIso2,
+                    stateCode: place?.stateCode,
+                    cityName: place?.cityName,
+                    acceptsVisitor: academy.acceptsVisitor,
+                    blockedAt: academy.blockedAt,
+                    ownerId: academy.ownerId,
+                  }}
+                />
+              );
+            }),
+          )
         )}
       </section>
     </section>

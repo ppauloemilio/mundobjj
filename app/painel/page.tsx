@@ -5,6 +5,7 @@ import { ChangePasswordForm } from "@/components/change-password-form";
 import { ProfileForm } from "@/components/profile-form";
 import { requireDb } from "@/db";
 import { athleteProfessors, memberships } from "@/db/schema";
+import { getCitySelection } from "@/lib/location-input";
 import { getProfileForUser, requireUser } from "@/lib/session";
 
 export const instant = false;
@@ -45,6 +46,8 @@ export default async function PainelPage() {
         .limit(1)
     : [undefined];
 
+  const place = await getCitySelection(profile.cityId);
+
   return (
     <section className="flex flex-col gap-4">
       <div>
@@ -61,6 +64,9 @@ export default async function PainelPage() {
           name: profile.name,
           slug: profile.slug,
           cityId: profile.cityId,
+          countryIso2: place?.countryIso2,
+          stateCode: place?.stateCode,
+          cityName: place?.cityName,
           academyId: membership?.academyId ?? null,
           professorProfileId: athleteProfessor?.professorProfileId ?? null,
           belt: profile.belt,

@@ -5,7 +5,7 @@ import {
   saveAcademyAction,
   type AcademyFormState,
 } from "@/app/actions/academy";
-import { LocationFields } from "@/components/location-fields";
+import { AddressFields } from "@/components/address-fields";
 import { ResponsibleProfessorSelect } from "@/components/responsible-professor-select";
 import { classKindLabel } from "@/lib/labels";
 
@@ -39,8 +39,15 @@ type AcademyValues = {
   professorName: string | null;
   whatsapp: string | null;
   address: string | null;
+  postalCode: string | null;
+  street: string | null;
+  streetNumber: string | null;
+  complement: string | null;
   neighborhood: string | null;
   cityId: string | null;
+  countryIso2?: string | null;
+  stateCode?: string | null;
+  cityName?: string | null;
   acceptsVisitor: boolean;
   dropInPrice: string | null;
   visitorNotes: string | null;
@@ -83,18 +90,19 @@ export function AcademyForm({
         initialProfessorName={academy?.professorName ?? ""}
       />
       <Field label="WhatsApp" name="whatsapp" defaultValue={academy?.whatsapp ?? ""} />
-      <Field
-        label="Endereço"
-        name="address"
-        defaultValue={academy?.address ?? ""}
+      <AddressFields
         required
+        initial={{
+          countryIso2: academy?.countryIso2,
+          stateCode: academy?.stateCode,
+          cityName: academy?.cityName,
+          postalCode: academy?.postalCode,
+          street: academy?.street,
+          streetNumber: academy?.streetNumber,
+          complement: academy?.complement,
+          neighborhood: academy?.neighborhood,
+        }}
       />
-      <Field
-        label="Bairro"
-        name="neighborhood"
-        defaultValue={academy?.neighborhood ?? ""}
-      />
-      <LocationFields initialCityId={academy?.cityId ?? ""} required />
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

@@ -13,7 +13,7 @@ import {
 import { saveAthleteProfessorLink } from "@/lib/athlete-professor";
 import {
   readLocationFromForm,
-  saveLocationSuggestions,
+  resolveLocationToCityId,
 } from "@/lib/location-input";
 import { requireUser } from "@/lib/session";
 import { slugify } from "@/lib/slug";
@@ -97,10 +97,10 @@ export async function updateProfileAction(
   }
 
   const location = readLocationFromForm(formData);
-  await saveLocationSuggestions(location, user.id);
+  const resolvedCityId = await resolveLocationToCityId(location, user.id);
   const nextCityId = location.customCity
     ? undefined
-    : location.cityId || undefined;
+    : resolvedCityId || undefined;
 
   const [profile] = await db
     .update(profiles)

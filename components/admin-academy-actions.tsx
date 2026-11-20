@@ -10,6 +10,7 @@ import {
   updateAcademyAdminAction,
   type AdminFormState,
 } from "@/app/actions/admin";
+import { AddressFields } from "@/components/address-fields";
 import { ResponsibleProfessorSelect } from "@/components/responsible-professor-select";
 
 const initial: AdminFormState = {};
@@ -22,6 +23,14 @@ type AcademyRow = {
   professorName: string | null;
   whatsapp: string | null;
   address: string | null;
+  postalCode: string | null;
+  street: string | null;
+  streetNumber: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  countryIso2?: string | null;
+  stateCode?: string | null;
+  cityName?: string | null;
   acceptsVisitor: boolean;
   blockedAt: Date | null;
   ownerId: string | null;
@@ -69,14 +78,20 @@ export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
             className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          Endereço
-          <input
-            name="address"
-            defaultValue={academy.address ?? ""}
-            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+        <div className="sm:col-span-2">
+          <AddressFields
+            initial={{
+              countryIso2: academy.countryIso2,
+              stateCode: academy.stateCode,
+              cityName: academy.cityName,
+              postalCode: academy.postalCode,
+              street: academy.street,
+              streetNumber: academy.streetNumber,
+              complement: academy.complement,
+              neighborhood: academy.neighborhood,
+            }}
           />
-        </label>
+        </div>
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
           <input
             type="checkbox"

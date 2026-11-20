@@ -27,6 +27,9 @@ type ProfileValues = {
   name: string;
   slug: string;
   cityId: string | null;
+  countryIso2?: string | null;
+  stateCode?: string | null;
+  cityName?: string | null;
   academyId: string | null;
   professorProfileId: string | null;
   belt: string;
@@ -56,7 +59,11 @@ export function ProfileForm({
     <form action={action} className="flex flex-col gap-4">
       <Field label="Nome" name="name" defaultValue={profile.name} required />
       <Field label="Link do perfil" name="slug" defaultValue={profile.slug} required />
-      <LocationFields initialCityId={profile.cityId ?? ""} />
+      <LocationFields
+        initialCountryIso2={profile.countryIso2 ?? ""}
+        initialStateCode={profile.stateCode ?? ""}
+        initialCityName={profile.cityName ?? ""}
+      />
       {hideAcademyFields ? null : (
         <>
           <AcademySelect

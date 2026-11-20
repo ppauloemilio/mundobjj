@@ -2,38 +2,52 @@
 
 import { useEffect, useState } from "react";
 
-type Country = { id: string; name: string; iso2: string };
-type StateRow = { id: string; name: string; code: string };
-type City = { id: string; name: string };
+type Country = { iso2: string; name: string };
+type StateRow = { isoCode: string; name: string };
+type City = { name: string };
 
 const OTHER = "__other__";
 
 export function LocationFields({
-  initialCityId = "",
+  initialCountryIso2 = "",
+  initialStateCode = "",
+  initialCityName = "",
   required = false,
+  hideCountry = false,
 }: {
-  initialCityId?: string;
+  initialCountryIso2?: string;
+  initialStateCode?: string;
+  initialCityName?: string;
   required?: boolean;
+  /** Quando true, país vem de fora (ex.: AddressFields) */
+  hideCountry?: boolean;
 }) {
   const [countries, setCountries] = useState<Country[]>([]);
   const [states, setStates] = useState<StateRow[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [country, setCountry] = useState("");
-  const [stateId, setStateId] = useState("");
-  const [cityId, setCityId] = useState(initialCityId);
+  const [country, setCountry] = useState(initialCountryIso2 || "");
+  const [stateCode, setStateCode] = useState(initialStateCode || "");
+  const [cityName, setCityName] = useState(initialCityName || "");
   const [customCountry, setCustomCountry] = useState("");
   const [customState, setCustomState] = useState("");
   const [customCity, setCustomCity] = useState("");
 
   const countryOther = country === OTHER;
-  const stateOther = stateId === OTHER;
-  const cityOther = cityId === OTHER;
+  const stateOther = stateCode === OTHER;
+  const cityOther = cityName === OTHER;
 
   useEffect(() => {
-    void fetch("/api/locations")
+    if (hideCountry && initialCountryIso2) {
+      setCountry(initialCountryIso2);
+    }
+  }, [hideCountry, initialCountryIso2]);
+
+  useEffect(() => {
+    if (hideCountry) return;
+    void fetch("/api/geo")
       .then((response) => response.json())
       .then((data: { countries: Country[] }) => setCountries(data.countries ?? []));
-  }, []);
+  }, [hideCountry]);
 
   useEffect(() => {
     if (!country || country === OTHER) {
@@ -41,7 +55,7 @@ export function LocationFields({
       return;
     }
     let ignore = false;
-    void fetch(`/api/locations?country=${country}`)
+    void fetch(`/api/geo?country=${country}`)
       .then((response) => response.json())
       .then((data: { states: StateRow[] }) => {
         if (!ignore) setStates(data.states ?? []);
@@ -52,12 +66,12 @@ export function LocationFields({
   }, [country]);
 
   useEffect(() => {
-    if (!stateId || stateId === OTHER) {
+    if (!country || !stateCode || stateCode === OTHER || country === OTHER) {
       setCities([]);
       return;
     }
     let ignore = false;
-    void fetch(`/api/locations?state=${stateId}`)
+    void fetch(`/api/geo?country=${country}&state=${stateCode}`)
       .then((response) => response.json())
       .then((data: { cities: City[] }) => {
         if (!ignore) setCities(data.cities ?? []);
@@ -65,74 +79,70 @@ export function LocationFields({
     return () => {
       ignore = true;
     };
-  }, [stateId]);
+  }, [country, stateCode]);
 
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      <input
-        type="hidden"
-        name="countryMode"
-        value={countryOther ? "other" : "list"}
-      />
+    <div className={`grid gap-3 ${hideCountry ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+      <input type="hidden" name="countryMode" value={countryOther ? "other" : "list"} />
       <input type="hidden" name="stateMode" value={stateOther ? "other" : "list"} />
       <input type="hidden" name="cityMode" value={cityOther ? "other" : "list"} />
-      {!country && initialCityId ? (
-        <input type="hidden" name="cityId" value={initialCityId} />
-      ) : null}
       {!countryOther && country ? (
         <input type="hidden" name="countryIso2" value={country} />
       ) : null}
-      {!stateOther && stateId ? (
-        <input type="hidden" name="stateId" value={stateId} />
+      {!stateOther && stateCode ? (
+        <input type="hidden" name="stateCode" value={stateCode} />
+      ) : null}
+      {!cityOther && cityName ? (
+        <input type="hidden" name="cityName" value={cityName} />
       ) : null}
 
-      <label className="flex flex-col gap-1 text-sm">
-        País
-        <select
-          value={country}
-          required={required}
-          onChange={(event) => {
-            setCountry(event.target.value);
-            setStateId("");
-            setCityId("");
-            setStates([]);
-            setCities([]);
-            setCustomState("");
-            setCustomCity("");
-          }}
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-        >
-          <option value="">
-            {initialCityId && !country ? "Manter cidade atual" : "Selecione"}
-          </option>
-          {countries.map((item) => (
-            <option key={item.id} value={item.iso2}>
-              {item.name}
-            </option>
-          ))}
-          <option value={OTHER}>Outro</option>
-        </select>
-        {countryOther ? (
-          <input
-            name="customCountry"
-            value={customCountry}
-            onChange={(event) => setCustomCountry(event.target.value)}
+      {hideCountry ? null : (
+        <label className="flex flex-col gap-1 text-sm">
+          País
+          <select
+            value={country}
             required={required}
-            placeholder="Digite o país"
-            className="mt-2 min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-          />
-        ) : null}
-      </label>
+            onChange={(event) => {
+              setCountry(event.target.value);
+              setStateCode("");
+              setCityName("");
+              setStates([]);
+              setCities([]);
+              setCustomState("");
+              setCustomCity("");
+            }}
+            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+          >
+            <option value="">Selecione</option>
+            {countries.map((item) => (
+              <option key={item.iso2} value={item.iso2}>
+                {item.name}
+              </option>
+            ))}
+            <option value={OTHER}>Outro</option>
+          </select>
+          {countryOther ? (
+            <input
+              name="customCountry"
+              value={customCountry}
+              onChange={(event) => setCustomCountry(event.target.value)}
+              required={required}
+              placeholder="Digite o país"
+              className="mt-2 min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+            />
+          ) : null}
+        </label>
+      )}
 
       <label className="flex flex-col gap-1 text-sm">
         Estado
         <select
-          value={stateId}
+          value={stateCode}
           required={required && Boolean(country)}
           disabled={!country}
           onChange={(event) => {
-            setStateId(event.target.value);
-            setCityId("");
+            setStateCode(event.target.value);
+            setCityName("");
             setCities([]);
             setCustomCity("");
           }}
@@ -141,7 +151,7 @@ export function LocationFields({
           <option value="">Selecione</option>
           {!countryOther
             ? states.map((item) => (
-                <option key={item.id} value={item.id}>
+                <option key={item.isoCode} value={item.isoCode}>
                   {item.name}
                 </option>
               ))
@@ -163,17 +173,16 @@ export function LocationFields({
       <label className="flex flex-col gap-1 text-sm">
         Cidade
         <select
-          name={!cityOther && country ? "cityId" : undefined}
-          value={cityId}
-          required={required && Boolean(stateId)}
-          disabled={!stateId}
-          onChange={(event) => setCityId(event.target.value)}
+          value={cityName}
+          required={required && Boolean(stateCode)}
+          disabled={!stateCode}
+          onChange={(event) => setCityName(event.target.value)}
           className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3 disabled:opacity-50"
         >
           <option value="">Selecione</option>
           {!stateOther
             ? cities.map((item) => (
-                <option key={item.id} value={item.id}>
+                <option key={item.name} value={item.name}>
                   {item.name}
                 </option>
               ))

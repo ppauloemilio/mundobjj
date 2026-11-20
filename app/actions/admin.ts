@@ -5,11 +5,13 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireDb } from "@/db";
-import { academies, cities, profiles, states, users } from "@/db/schema";
+import { academies, profiles, users } from "@/db/schema";
 import { geocodeAddress } from "@/lib/geocode";
 import {
+  composeStreetAddress,
+  readAddressFromForm,
   readLocationFromForm,
-  saveLocationSuggestions,
+  resolveLocationToCityId,
 } from "@/lib/location-input";
 import {
   readProfessorFromForm,
@@ -21,6 +23,7 @@ import {
   randomTemporaryPassword,
   whatsappChatUrl,
 } from "@/lib/whatsapp";
+import { getWorldCountryName, getWorldStateName } from "@/lib/world-geo";
 
 export type AdminFormState = {
   error?: string;
@@ -249,22 +252,26 @@ export async function createAcademyAdminAction(
     .object({
       name: z.string().trim().min(2, "Informe o nome da academia."),
       whatsapp: z.string().trim().optional(),
-      address: z.string().trim().min(5, "Informe o endereço."),
-      neighborhood: z.string().trim().optional(),
       affiliation: z.string().trim().optional(),
       acceptsVisitor: z.coerce.boolean().optional(),
     })
     .safeParse({
       name: formData.get("name"),
       whatsapp: formData.get("whatsapp") || "",
-      address: formData.get("address"),
-      neighborhood: formData.get("neighborhood") || "",
       affiliation: formData.get("affiliation") || "",
       acceptsVisitor: formData.get("acceptsVisitor") === "on",
     });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const address = readAddressFromForm(formData);
+  if (!address.street || address.street.length < 2) {
+    return { error: "Informe a rua / logradouro." };
+  }
+  if (!address.streetNumber) {
+    return { error: "Informe o número." };
   }
 
   const professorInput = readProfessorFromForm(formData);
@@ -276,44 +283,28 @@ export async function createAcademyAdminAction(
   }
 
   const location = readLocationFromForm(formData);
-  await saveLocationSuggestions(location, admin.id);
-  const cityId = location.customCity ? null : location.cityId;
+  const cityId = await resolveLocationToCityId(location, admin.id);
   if (!cityId && !location.customCity) {
     return { error: "Selecione a cidade ou use Outro." };
   }
 
   const db = requireDb();
-  let placeName = "";
-  if (cityId) {
-    const [place] = await db
-      .select({
-        city: cities.name,
-        stateCode: states.code,
-        state: states.name,
-      })
-      .from(cities)
-      .innerJoin(states, eq(cities.stateId, states.id))
-      .where(eq(cities.id, cityId))
-      .limit(1);
-    if (place) {
-      placeName = [place.city, place.stateCode, place.state]
-        .filter(Boolean)
-        .join(", ");
-    }
-  }
-
-  const query = [
-    parsed.data.address,
-    parsed.data.neighborhood,
-    placeName,
-    location.customCity,
-    location.customState,
-    location.customCountry,
+  const composedAddress = composeStreetAddress(address);
+  const placeName = [
+    location.cityName || location.customCity,
+    location.stateCode
+      ? getWorldStateName(location.countryIso2 || "BR", location.stateCode)
+      : location.customState,
+    location.countryIso2
+      ? getWorldCountryName(location.countryIso2)
+      : location.customCountry,
   ]
     .filter(Boolean)
     .join(", ");
 
-  const coords = await geocodeAddress(query);
+  const coords = await geocodeAddress(
+    [composedAddress, address.neighborhood, placeName].filter(Boolean).join(", "),
+  );
 
   const [created] = await db
     .insert(academies)
@@ -326,8 +317,12 @@ export async function createAcademyAdminAction(
           ? professorInput.suggestedProfessorName
           : null,
       whatsapp: parsed.data.whatsapp || null,
-      address: parsed.data.address,
-      neighborhood: parsed.data.neighborhood || null,
+      address: composedAddress,
+      postalCode: address.postalCode || null,
+      street: address.street || null,
+      streetNumber: address.streetNumber || null,
+      complement: address.complement || null,
+      neighborhood: address.neighborhood || null,
       ...(cityId ? { cityId } : {}),
       lat: coords ? String(coords.lat) : null,
       lng: coords ? String(coords.lng) : null,
@@ -371,20 +366,22 @@ export async function updateAcademyAdminAction(
       academyId: z.string().uuid(),
       name: z.string().trim().min(2),
       whatsapp: z.string().trim().optional(),
-      address: z.string().trim().optional(),
       acceptsVisitor: z.coerce.boolean().optional(),
     })
     .safeParse({
       academyId: formData.get("academyId"),
       name: formData.get("name"),
       whatsapp: formData.get("whatsapp") || "",
-      address: formData.get("address") || "",
       acceptsVisitor: formData.get("acceptsVisitor") === "on",
     });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
+
+  const address = readAddressFromForm(formData);
+  const location = readLocationFromForm(formData);
+  const hasAddressUpdate = Boolean(address.street || location.countryIso2);
 
   const professorInput = readProfessorFromForm(formData);
   const db = requireDb();
@@ -410,13 +407,49 @@ export async function updateAcademyAdminAction(
     professorName = professor.professorName;
   }
 
+  let addressPatch: Record<string, string | null> = {};
+  if (hasAddressUpdate) {
+    if (!address.street || !address.streetNumber) {
+      return { error: "Informe rua e número do endereço." };
+    }
+    const cityId = await resolveLocationToCityId(location, admin.id);
+    const composedAddress = composeStreetAddress(address);
+    const placeName = [
+      location.cityName || location.customCity,
+      location.stateCode
+        ? getWorldStateName(location.countryIso2 || "BR", location.stateCode)
+        : location.customState,
+      location.countryIso2
+        ? getWorldCountryName(location.countryIso2)
+        : location.customCountry,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const coords = await geocodeAddress(
+      [composedAddress, address.neighborhood, placeName]
+        .filter(Boolean)
+        .join(", "),
+    );
+    addressPatch = {
+      address: composedAddress,
+      postalCode: address.postalCode || null,
+      street: address.street || null,
+      streetNumber: address.streetNumber || null,
+      complement: address.complement || null,
+      neighborhood: address.neighborhood || null,
+      ...(cityId ? { cityId } : {}),
+      lat: coords ? String(coords.lat) : null,
+      lng: coords ? String(coords.lng) : null,
+    };
+  }
+
   await db
     .update(academies)
     .set({
       name: parsed.data.name,
       ...(touchedProfessor ? { professorName: professorName ?? null } : {}),
       whatsapp: parsed.data.whatsapp || null,
-      address: parsed.data.address || null,
+      ...addressPatch,
       acceptsVisitor: Boolean(parsed.data.acceptsVisitor),
     })
     .where(eq(academies.id, parsed.data.academyId));

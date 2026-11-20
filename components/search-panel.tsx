@@ -9,9 +9,9 @@ const ResultMap = dynamic(() => import("@/components/result-map"), {
   ssr: false,
 });
 
-type Country = { id: string; name: string; iso2: string };
-type StateRow = { id: string; name: string; code: string };
-type City = { id: string; name: string };
+type Country = { iso2: string; name: string };
+type StateRow = { isoCode: string; name: string };
+type City = { name: string };
 type Category = { id: string; name: string; slug: string };
 type Layer = "academies" | "stores";
 type Mode = "nearby" | "place";
@@ -27,8 +27,8 @@ export function SearchPanel() {
   const [cities, setCities] = useState<City[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [country, setCountry] = useState("");
-  const [stateId, setStateId] = useState("");
-  const [cityId, setCityId] = useState("");
+  const [stateCode, setStateCode] = useState("");
+  const [cityName, setCityName] = useState("");
   const [category, setCategory] = useState("");
   const [configured, setConfigured] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -43,21 +43,13 @@ export function SearchPanel() {
   const [searchPinsActive, setSearchPinsActive] = useState(false);
 
   useEffect(() => {
-    void fetch("/api/locations")
+    void fetch("/api/geo")
       .then((response) => response.json())
-      .then((data: { configured: boolean; countries: Country[]; error?: string }) => {
-        setConfigured(data.configured);
-        setCountries(data.countries);
-        if (data.error === "schema") {
-          setMessage(
-            "O Neon está ligado, mas as tabelas ainda não existem. O próximo passo é rodar npm run db:setup.",
-          );
-        } else if (!data.configured) {
-          setMessage(
-            "O Neon ainda não está ligado neste ambiente. A busca abre assim que a DATABASE_URL existir e o seed rodar.",
-          );
-        }
-      });
+      .then((data: { countries: Country[] }) => {
+        setCountries(data.countries ?? []);
+        setConfigured(true);
+      })
+      .catch(() => setConfigured(false));
     void fetch("/api/categories")
       .then((response) => response.json())
       .then((data: { categories: Category[] }) => setCategories(data.categories));
@@ -82,10 +74,10 @@ export function SearchPanel() {
   useEffect(() => {
     if (!country) return;
     let ignore = false;
-    void fetch(`/api/locations?country=${country}`)
+    void fetch(`/api/geo?country=${country}`)
       .then((response) => response.json())
       .then((data: { states: StateRow[] }) => {
-        if (!ignore) setStates(data.states);
+        if (!ignore) setStates(data.states ?? []);
       });
     return () => {
       ignore = true;
@@ -93,28 +85,49 @@ export function SearchPanel() {
   }, [country]);
 
   useEffect(() => {
-    if (!stateId) return;
+    if (!country || !stateCode) return;
     let ignore = false;
-    void fetch(`/api/locations?state=${stateId}`)
+    void fetch(`/api/geo?country=${country}&state=${stateCode}`)
       .then((response) => response.json())
       .then((data: { cities: City[] }) => {
-        if (!ignore) setCities(data.cities);
+        if (!ignore) setCities(data.cities ?? []);
       });
     return () => {
       ignore = true;
     };
-  }, [stateId]);
+  }, [country, stateCode]);
 
   async function search(next?: { lat?: number; lng?: number; cityId?: string }) {
     const params = new URLSearchParams({ layer, radius: String(radius) });
-    const selectedCity = next?.cityId ?? cityId;
 
     if (mode === "place") {
-      if (!selectedCity) {
+      if (!country || !stateCode || !cityName) {
         setMessage("Escolha país, estado e cidade.");
         return;
       }
-      params.set("cityId", selectedCity);
+      setLoading(true);
+      const resolved = await fetch("/api/geo/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          countryIso2: country,
+          stateCode,
+          cityName,
+        }),
+      }).then(
+        (response) =>
+          response.json() as Promise<{ cityId: string | null; configured: boolean }>,
+      );
+      if (!resolved.configured || !resolved.cityId) {
+        setLoading(false);
+        setMessage(
+          resolved.configured
+            ? "Não foi possível resolver a cidade selecionada."
+            : "O Neon ainda não está ligado neste ambiente.",
+        );
+        return;
+      }
+      params.set("cityId", next?.cityId ?? resolved.cityId);
     } else if (next?.lat != null && next.lng != null) {
       params.set("lat", String(next.lat));
       params.set("lng", String(next.lng));
@@ -259,8 +272,8 @@ export function SearchPanel() {
               value={country}
               onChange={(value) => {
                 setCountry(value);
-                setStateId("");
-                setCityId("");
+                setStateCode("");
+                setCityName("");
                 setStates([]);
                 setCities([]);
               }}
@@ -268,21 +281,24 @@ export function SearchPanel() {
             />
             <Select
               label="Estado"
-              value={stateId}
+              value={stateCode}
               disabled={!country}
               onChange={(value) => {
-                setStateId(value);
-                setCityId("");
+                setStateCode(value);
+                setCityName("");
                 setCities([]);
               }}
-              options={states.map((item) => ({ value: item.id, label: item.name }))}
+              options={states.map((item) => ({
+                value: item.isoCode,
+                label: item.name,
+              }))}
             />
             <Select
               label="Cidade"
-              value={cityId}
-              disabled={!stateId}
-              onChange={setCityId}
-              options={cities.map((item) => ({ value: item.id, label: item.name }))}
+              value={cityName}
+              disabled={!stateCode}
+              onChange={setCityName}
+              options={cities.map((item) => ({ value: item.name, label: item.name }))}
             />
           </div>
         ) : (

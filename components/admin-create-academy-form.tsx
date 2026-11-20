@@ -5,7 +5,7 @@ import {
   createAcademyAdminAction,
   type AdminFormState,
 } from "@/app/actions/admin";
-import { LocationFields } from "@/components/location-fields";
+import { AddressFields } from "@/components/address-fields";
 import { ResponsibleProfessorSelect } from "@/components/responsible-professor-select";
 
 const initial: AdminFormState = {};
@@ -24,7 +24,8 @@ export function AdminCreateAcademyForm() {
       <div>
         <h2 className="text-lg font-semibold">Cadastrar academia</h2>
         <p className="text-sm text-[var(--muted)]">
-          Cadastro feito pelo admin. O responsável pode pedir o acesso depois.
+          Cadastro feito pelo admin. No Brasil use CEP; nos demais países,
+          país → estado → cidade da base mundial.
         </p>
       </div>
       <label className="flex flex-col gap-1 text-sm">
@@ -44,28 +45,13 @@ export function AdminCreateAcademyForm() {
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Endereço
-        <input
-          name="address"
-          required
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Bairro
-        <input
-          name="neighborhood"
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
         Equipe / afiliação
         <input
           name="affiliation"
           className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
         />
       </label>
-      <LocationFields required />
+      <AddressFields required />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="acceptsVisitor" defaultChecked />
         Aceita visitante

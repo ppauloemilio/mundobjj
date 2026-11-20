@@ -11,6 +11,7 @@ import {
   memberships,
   profiles,
 } from "@/db/schema";
+import { getCitySelection } from "@/lib/location-input";
 import { getOwnedAcademies, requireUser } from "@/lib/session";
 
 export const instant = false;
@@ -52,6 +53,7 @@ export default async function PainelAcademiaPage({
     : [];
 
   const activeProfessors = professorLinks.filter((row) => row.status === "active");
+  const place = academy ? await getCitySelection(academy.cityId) : null;
 
   const members = academy
     ? await db
@@ -109,8 +111,15 @@ export default async function PainelAcademiaPage({
                   professorName: academy.professorName,
                   whatsapp: academy.whatsapp,
                   address: academy.address,
+                  postalCode: academy.postalCode,
+                  street: academy.street,
+                  streetNumber: academy.streetNumber,
+                  complement: academy.complement,
                   neighborhood: academy.neighborhood,
                   cityId: academy.cityId,
+                  countryIso2: place?.countryIso2,
+                  stateCode: place?.stateCode,
+                  cityName: place?.cityName,
                   acceptsVisitor: academy.acceptsVisitor,
                   dropInPrice: academy.dropInPrice,
                   visitorNotes: academy.visitorNotes,

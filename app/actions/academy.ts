@@ -5,11 +5,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireDb } from "@/db";
-import { academies, classSchedules, cities, profiles, states } from "@/db/schema";
+import { academies, classSchedules, profiles } from "@/db/schema";
 import { geocodeAddress } from "@/lib/geocode";
 import {
+  composeStreetAddress,
+  readAddressFromForm,
   readLocationFromForm,
-  saveLocationSuggestions,
+  resolveLocationToCityId,
 } from "@/lib/location-input";
 import {
   readProfessorFromForm,
@@ -17,14 +19,13 @@ import {
 } from "@/lib/professor-input";
 import { requireUser } from "@/lib/session";
 import { slugify, uniqueSlug } from "@/lib/slug";
+import { getWorldCountryName, getWorldStateName } from "@/lib/world-geo";
 
 const academySchema = z.object({
   id: z.string().uuid().optional().or(z.literal("")),
   name: z.string().trim().min(2),
   affiliation: z.string().trim().optional(),
   whatsapp: z.string().trim().optional(),
-  address: z.string().trim().min(5),
-  neighborhood: z.string().trim().optional(),
   acceptsVisitor: z.coerce.boolean().optional(),
   dropInPrice: z.string().optional(),
   visitorNotes: z.string().trim().optional(),
@@ -45,8 +46,6 @@ export async function saveAcademyAction(
     name: formData.get("name"),
     affiliation: formData.get("affiliation") || "",
     whatsapp: formData.get("whatsapp") || "",
-    address: formData.get("address"),
-    neighborhood: formData.get("neighborhood") || "",
     acceptsVisitor: formData.get("acceptsVisitor") === "on",
     dropInPrice: formData.get("dropInPrice") || "",
     visitorNotes: formData.get("visitorNotes") || "",
@@ -54,6 +53,14 @@ export async function saveAcademyAction(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const address = readAddressFromForm(formData);
+  if (!address.street || address.street.length < 2) {
+    return { error: "Informe a rua / logradouro." };
+  }
+  if (!address.streetNumber) {
+    return { error: "Informe o número." };
   }
 
   const professorInput = readProfessorFromForm(formData);
@@ -66,39 +73,29 @@ export async function saveAcademyAction(
 
   const db = requireDb();
   const location = readLocationFromForm(formData);
-  await saveLocationSuggestions(location, user.id);
-  const cityId = location.customCity ? null : location.cityId;
+  const cityId = await resolveLocationToCityId(location, user.id);
 
   if (!cityId && !location.customCity && !parsed.data.id) {
     return { error: "Selecione a cidade ou use Outro." };
   }
 
-  let placeName = "";
-  if (cityId) {
-    const [place] = await db
-      .select({
-        city: cities.name,
-        state: states.name,
-        stateCode: states.code,
-      })
-      .from(cities)
-      .innerJoin(states, eq(cities.stateId, states.id))
-      .where(eq(cities.id, cityId))
-      .limit(1);
-    if (place) {
-      placeName = [place.city, place.stateCode, place.state]
-        .filter(Boolean)
-        .join(", ");
-    }
-  }
+  const composedAddress = composeStreetAddress(address);
+  const placeName = [
+    location.cityName || location.customCity,
+    location.stateCode
+      ? getWorldStateName(location.countryIso2 || "BR", location.stateCode)
+      : location.customState,
+    location.countryIso2
+      ? getWorldCountryName(location.countryIso2)
+      : location.customCountry,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   const query = [
-    parsed.data.address,
-    parsed.data.neighborhood,
+    composedAddress,
+    address.neighborhood,
     placeName,
-    location.customCity,
-    location.customState,
-    location.customCountry,
   ]
     .filter(Boolean)
     .join(", ");
@@ -128,8 +125,12 @@ export async function saveAcademyAction(
     affiliation: parsed.data.affiliation || null,
     professorName: provisionalName,
     whatsapp: parsed.data.whatsapp || null,
-    address: parsed.data.address,
-    neighborhood: parsed.data.neighborhood || null,
+    address: composedAddress,
+    postalCode: address.postalCode || null,
+    street: address.street || null,
+    streetNumber: address.streetNumber || null,
+    complement: address.complement || null,
+    neighborhood: address.neighborhood || null,
     ...(cityId ? { cityId } : {}),
     lat: coords ? String(coords.lat) : null,
     lng: coords ? String(coords.lng) : null,

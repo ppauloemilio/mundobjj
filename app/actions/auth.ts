@@ -17,7 +17,7 @@ import {
 import { saveAthleteProfessorLink } from "@/lib/athlete-professor";
 import {
   readLocationFromForm,
-  saveLocationSuggestions,
+  resolveLocationToCityId,
 } from "@/lib/location-input";
 import { uniqueSlug } from "@/lib/slug";
 
@@ -109,7 +109,7 @@ export async function registerAthleteAction(
   if ("error" in created) return created;
 
   const location = readLocationFromForm(formData);
-  const cityId = await saveLocationSuggestions(location, created.userId);
+  const cityId = await resolveLocationToCityId(location, created.userId);
   const db = requireDb();
 
   if (cityId) {
@@ -246,7 +246,7 @@ export async function registerProfessorAction(
   if ("error" in created) return created;
 
   const location = readLocationFromForm(formData);
-  const cityId = await saveLocationSuggestions(location, created.userId);
+  const cityId = await resolveLocationToCityId(location, created.userId);
   const db = requireDb();
 
   if (cityId) {
