@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { ChangePasswordForm } from "@/components/change-password-form";
 import { ProfileForm } from "@/components/profile-form";
 import { requireDb } from "@/db";
 import { athleteProfessors, memberships } from "@/db/schema";
@@ -75,6 +76,7 @@ export default async function PainelPage() {
           showEmail: profile.showEmail,
         }}
       />
+      <ChangePasswordForm />
     </section>
   );
 }

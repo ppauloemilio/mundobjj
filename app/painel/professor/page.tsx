@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { and, asc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { ChangePasswordForm } from "@/components/change-password-form";
 import { ProfileForm } from "@/components/profile-form";
 import { ProfessorAcademyLinkForm } from "@/components/professor-academy-link-form";
 import { requireDb } from "@/db";
@@ -87,6 +88,8 @@ export default async function PainelProfessorPage() {
           showEmail: profile.showEmail,
         }}
       />
+
+      <ChangePasswordForm />
 
       <ProfessorAcademyLinkForm />
 

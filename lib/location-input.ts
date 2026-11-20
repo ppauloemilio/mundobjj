@@ -43,7 +43,7 @@ export function readLocationFromForm(formData: FormData): LocationInput {
 
 export async function saveLocationSuggestions(
   input: LocationInput,
-  userId?: string,
+  userId?: string | null,
 ) {
   const db = requireDb();
   const rows = [];

@@ -7,17 +7,91 @@ import { z } from "zod";
 import { requireDb } from "@/db";
 import { academies, profiles, users } from "@/db/schema";
 import { requireAdmin } from "@/lib/session";
+import {
+  randomTemporaryPassword,
+  whatsappChatUrl,
+} from "@/lib/whatsapp";
 
 export type AdminFormState = {
   error?: string;
   success?: string;
   temporaryPassword?: string;
+  whatsappUrl?: string;
 };
 
-function randomPassword() {
-  return `Mbjj-${Math.random().toString(36).slice(2, 8)}-${Math.random()
-    .toString(36)
-    .slice(2, 6)}`;
+async function resolveUserWhatsapp(userId: string) {
+  const db = requireDb();
+  const [profile] = await db
+    .select({ whatsapp: profiles.whatsapp, name: profiles.name })
+    .from(profiles)
+    .where(eq(profiles.userId, userId))
+    .limit(1);
+
+  if (profile?.whatsapp) {
+    return { whatsapp: profile.whatsapp, label: profile.name };
+  }
+
+  const [academy] = await db
+    .select({ whatsapp: academies.whatsapp, name: academies.name })
+    .from(academies)
+    .where(eq(academies.ownerId, userId))
+    .limit(1);
+
+  if (academy?.whatsapp) {
+    return { whatsapp: academy.whatsapp, label: academy.name };
+  }
+
+  return null;
+}
+
+async function applyPassword(
+  userId: string,
+  temporaryPassword: string,
+  viaWhatsApp: boolean,
+): Promise<AdminFormState> {
+  const passwordHash = await hash(temporaryPassword, 10);
+  const db = requireDb();
+  const [user] = await db
+    .select({
+      email: users.email,
+      name: users.name,
+      accountType: users.accountType,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) return { error: "Usuário não encontrado." };
+
+  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+
+  const contact = await resolveUserWhatsapp(userId);
+  const message = [
+    `Olá${contact?.label ? ` ${contact.label}` : ""}!`,
+    "Sua senha no Mundo BJJ foi redefinida pelo administrador.",
+    `E-mail: ${user.email}`,
+    `Nova senha: ${temporaryPassword}`,
+    "Entre em https://mundobjj.vercel.app/entrar e altere a senha no painel.",
+  ].join("\n");
+
+  const whatsappUrl = whatsappChatUrl(contact?.whatsapp, message);
+
+  if (viaWhatsApp && !whatsappUrl) {
+    return {
+      error:
+        "Senha redefinida, mas não há WhatsApp cadastrado para este usuário/academia. Copie a senha e envie manualmente.",
+      temporaryPassword,
+    };
+  }
+
+  revalidatePath("/admin/usuarios");
+  return {
+    success: viaWhatsApp
+      ? "Senha gerada. Abra o WhatsApp para enviar."
+      : "Senha definida. Copie e envie ao usuário.",
+    temporaryPassword,
+    whatsappUrl: whatsappUrl ?? undefined,
+  };
 }
 
 export async function updateUserAction(
@@ -93,7 +167,27 @@ export async function toggleUserBlockAction(formData: FormData) {
   revalidatePath("/admin/usuarios");
 }
 
-export async function resetUserPasswordAction(
+export async function setUserPasswordAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  await requireAdmin();
+  const userId = String(formData.get("userId") || "");
+  const parsed = z
+    .object({
+      password: z.string().min(6, "A senha precisa ter ao menos 6 caracteres."),
+    })
+    .safeParse({ password: formData.get("password") });
+
+  if (!userId) return { error: "Usuário inválido." };
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Senha inválida." };
+  }
+
+  return applyPassword(userId, parsed.data.password, false);
+}
+
+export async function resetUserPasswordWhatsAppAction(
   _prev: AdminFormState,
   formData: FormData,
 ): Promise<AdminFormState> {
@@ -101,17 +195,15 @@ export async function resetUserPasswordAction(
   const userId = String(formData.get("userId") || "");
   if (!userId) return { error: "Usuário inválido." };
 
-  const temporaryPassword = randomPassword();
-  const passwordHash = await hash(temporaryPassword, 10);
-  const db = requireDb();
+  return applyPassword(userId, randomTemporaryPassword(), true);
+}
 
-  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
-
-  revalidatePath("/admin/usuarios");
-  return {
-    success: "Senha redefinida. Copie a senha temporária agora.",
-    temporaryPassword,
-  };
+/** @deprecated use setUserPasswordAction / resetUserPasswordWhatsAppAction */
+export async function resetUserPasswordAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  return resetUserPasswordWhatsAppAction(_prev, formData);
 }
 
 export async function updateAcademyAdminAction(

@@ -18,6 +18,8 @@ type AcademyRow = {
   address: string | null;
   acceptsVisitor: boolean;
   blockedAt: Date | null;
+  ownerId: string | null;
+  claimToken: string | null;
 };
 
 export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
@@ -108,6 +110,24 @@ export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
       </div>
       {academy.blockedAt ? (
         <p className="mt-2 text-sm text-[var(--accent)]">Bloqueada na busca</p>
+      ) : null}
+      {!academy.ownerId ? (
+        <div className="mt-3 rounded-xl bg-[var(--accent-soft)] px-3 py-2 text-sm">
+          Sem dono · código de reivindicação:{" "}
+          <strong>{academy.claimToken || "—"}</strong>
+          {academy.claimToken ? (
+            <>
+              {" "}
+              ·{" "}
+              <a
+                href={`/reivindicar?codigo=${academy.claimToken}`}
+                className="underline"
+              >
+                link
+              </a>
+            </>
+          ) : null}
+        </div>
       ) : null}
     </article>
   );

@@ -179,7 +179,7 @@ export function SearchPanel() {
     setMessage(
       results.length
         ? `${results.length} academia${results.length > 1 ? "s" : ""} encontrada${results.length > 1 ? "s" : ""}.`
-        : "Nenhuma academia nesta região ainda. Cadastre a sua em /painel/academia.",
+        : "Nenhuma academia nesta região ainda. Indique uma em /indicar-academia ou cadastre a conta em /cadastro/academia.",
     );
   }
 

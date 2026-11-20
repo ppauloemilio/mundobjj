@@ -3,6 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { AcademyForm } from "@/components/academy-form";
 import { AcademyProfessorPanel } from "@/components/academy-professor-panel";
+import { ChangePasswordForm } from "@/components/change-password-form";
 import { requireDb } from "@/db";
 import {
   academyProfessors,
@@ -139,6 +140,8 @@ export default async function PainelAcademiaPage({
           }))}
         />
       ) : null}
+
+      <ChangePasswordForm />
 
       {academy ? (
         <section className="flex flex-col gap-3">

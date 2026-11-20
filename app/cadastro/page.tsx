@@ -41,6 +41,13 @@ export default function CadastroPage() {
         </Link>
       </div>
       <p className="text-sm text-[var(--muted)]">
+        Quer só colocar uma academia na busca?{" "}
+        <Link href="/indicar-academia" className="underline">
+          Indicar academia
+        </Link>{" "}
+        (ela pode reivindicar depois).
+      </p>
+      <p className="text-sm text-[var(--muted)]">
         Já tem conta?{" "}
         <Link href="/entrar" className="underline">
           Entrar

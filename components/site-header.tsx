@@ -30,6 +30,12 @@ async function AuthLinks() {
 
   return (
     <div className="flex items-center gap-3">
+      <Link
+        href="/indicar-academia"
+        className="hidden text-sm font-medium hover:underline sm:inline"
+      >
+        Indicar academia
+      </Link>
       <Link href="/entrar" className="text-sm font-medium hover:underline">
         Entrar
       </Link>

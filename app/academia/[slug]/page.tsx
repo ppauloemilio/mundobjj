@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { requireDb } from "@/db";
@@ -73,6 +74,17 @@ export default async function AcademiaPage({
       </div>
 
       {academy.address ? <p>{academy.address}</p> : null}
+
+      {!academy.ownerId ? (
+        <p className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm">
+          Esta academia ainda não tem dono na plataforma. Se você representa
+          este espaço,{" "}
+          <Link href="/reivindicar" className="underline">
+            reivindique o acesso
+          </Link>{" "}
+          com o código de cadastro.
+        </p>
+      ) : null}
 
       {academy.acceptsVisitor ? (
         <p className="rounded-2xl bg-[var(--accent-soft)] px-4 py-3 text-sm">

@@ -14,7 +14,8 @@ export default async function AdminAcademiasPage() {
   return (
     <section className="flex flex-col gap-4">
       <p className="text-sm text-[var(--muted)]">
-        Edite a ficha ou bloqueie a academia na busca pública.
+        Edite a ficha ou bloqueie a academia na busca pública. Academias sem
+        dono ainda podem ser reivindicadas.
       </p>
       {rows.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">Nenhuma academia cadastrada.</p>
@@ -31,6 +32,8 @@ export default async function AdminAcademiasPage() {
               address: academy.address,
               acceptsVisitor: academy.acceptsVisitor,
               blockedAt: academy.blockedAt,
+              ownerId: academy.ownerId,
+              claimToken: academy.claimToken,
             }}
           />
         ))

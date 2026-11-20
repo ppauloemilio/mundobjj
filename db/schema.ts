@@ -215,6 +215,8 @@ export const academies = pgTable(
     dropInPrice: numeric("drop_in_price", { precision: 10, scale: 2 }),
     visitorNotes: text("visitor_notes"),
     ownerId: text("owner_id").references(() => users.id),
+    claimToken: text("claim_token").unique(),
+    claimedAt: timestamp("claimed_at", { mode: "date" }),
     blockedAt: timestamp("blocked_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
