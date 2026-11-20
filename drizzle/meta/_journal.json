@@ -43,6 +43,20 @@
       "when": 1795115084354,
       "tag": "0005_dear_red_shift",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795137737437,
+      "tag": "0006_goofy_ken_ellis",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795138269602,
+      "tag": "0007_familiar_black_knight",
+      "breakpoints": true
     }
   ]
 }

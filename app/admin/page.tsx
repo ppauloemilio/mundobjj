@@ -3,6 +3,7 @@ import { count, eq, isNotNull } from "drizzle-orm";
 import { requireDb } from "@/db";
 import {
   academies,
+  academyAccessRequests,
   academySuggestions,
   locationSuggestions,
   users,
@@ -22,6 +23,7 @@ export default async function AdminPage() {
     [blockedAcademies],
     [pendingLocations],
     [pendingAcademies],
+    [pendingAccess],
   ] = await Promise.all([
     db.select({ value: count() }).from(users),
     db.select({ value: count() }).from(users).where(isNotNull(users.blockedAt)),
@@ -38,6 +40,10 @@ export default async function AdminPage() {
       .select({ value: count() })
       .from(academySuggestions)
       .where(eq(academySuggestions.status, "pending")),
+    db
+      .select({ value: count() })
+      .from(academyAccessRequests)
+      .where(eq(academyAccessRequests.status, "pending")),
   ]);
 
   const cards = [
@@ -51,7 +57,7 @@ export default async function AdminPage() {
       label: "Academias cadastradas",
       value: academiesCount.value,
       href: "/admin/academias",
-      detail: `${academiesCount.value - blockedAcademies.value} na busca · ${blockedAcademies.value} bloqueadas`,
+      detail: `${academiesCount.value - blockedAcademies.value} na busca · ${pendingAccess.value} pedindo acesso`,
     },
     {
       label: "Sugestões pendentes",
@@ -64,9 +70,10 @@ export default async function AdminPage() {
   return (
     <section className="flex flex-col gap-4">
       <p className="text-sm text-[var(--muted)]">
-        Contas são quem faz login. Academias cadastradas aparecem na busca.
-        Sugestões vêm de quem escolheu &quot;Outro&quot; em país, estado, cidade
-        ou academia.
+        Esta área é só da conta de administração. Se você também treina, use
+        outro e-mail e cadastre-se como praticante em /cadastro/atleta — são
+        logins separados. Academias na busca são cadastradas aqui; sugestões
+        vêm de quem escolheu &quot;Outro&quot; em local ou academia.
       </p>
       <div className="grid gap-4 sm:grid-cols-3">
         {cards.map((card) => (

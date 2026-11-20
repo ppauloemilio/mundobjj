@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { requireUser } from "@/lib/session";
+import { requireAppUser } from "@/lib/session";
 
 export const instant = false;
 
@@ -9,7 +9,7 @@ export default async function PainelLayout({
 }: {
   children: ReactNode;
 }) {
-  const user = await requireUser();
+  const user = await requireAppUser();
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
@@ -27,11 +27,6 @@ export default async function PainelLayout({
         {user.accountType === "academy" ? (
           <Link href="/painel/academia" className="font-medium underline">
             Minha academia
-          </Link>
-        ) : null}
-        {user.role === "admin" ? (
-          <Link href="/admin" className="font-medium underline">
-            Admin
           </Link>
         ) : null}
       </nav>

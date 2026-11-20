@@ -9,16 +9,20 @@ async function AuthLinks() {
   const session = await auth();
 
   if (session?.user) {
+    const isAdmin =
+      session.user.role === "admin" || session.user.accountType === "admin";
+
     return (
       <div className="flex items-center gap-3">
-        {session.user.role === "admin" ? (
+        {isAdmin ? (
           <Link href="/admin" className="text-sm font-medium hover:underline">
             Admin
           </Link>
-        ) : null}
-        <Link href="/painel" className="text-sm font-medium hover:underline">
-          Painel
-        </Link>
+        ) : (
+          <Link href="/painel" className="text-sm font-medium hover:underline">
+            Painel
+          </Link>
+        )}
         <form action={logoutAction}>
           <button type="submit" className="text-sm text-[var(--muted)] hover:underline">
             Sair
@@ -30,12 +34,6 @@ async function AuthLinks() {
 
   return (
     <div className="flex items-center gap-3">
-      <Link
-        href="/indicar-academia"
-        className="hidden text-sm font-medium hover:underline sm:inline"
-      >
-        Indicar academia
-      </Link>
       <Link href="/entrar" className="text-sm font-medium hover:underline">
         Entrar
       </Link>

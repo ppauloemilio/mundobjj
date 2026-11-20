@@ -15,7 +15,16 @@ export async function requireUser() {
 export async function requireAdmin() {
   const user = await requireUser();
   if (user.role !== "admin") {
-    redirect("/painel");
+    redirect(user.accountType === "academy" ? "/painel/academia" : "/painel");
+  }
+  return user;
+}
+
+/** Painel de atleta/professor/academia — conta admin de gestão não usa. */
+export async function requireAppUser() {
+  const user = await requireUser();
+  if (user.role === "admin" || user.accountType === "admin") {
+    redirect("/admin");
   }
   return user;
 }

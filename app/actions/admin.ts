@@ -5,8 +5,14 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireDb } from "@/db";
-import { academies, profiles, users } from "@/db/schema";
+import { academies, cities, profiles, states, users } from "@/db/schema";
+import { geocodeAddress } from "@/lib/geocode";
+import {
+  readLocationFromForm,
+  saveLocationSuggestions,
+} from "@/lib/location-input";
 import { requireAdmin } from "@/lib/session";
+import { uniqueSlug } from "@/lib/slug";
 import {
   randomTemporaryPassword,
   whatsappChatUrl,
@@ -130,23 +136,46 @@ export async function updateUserAction(
     return { error: "Já existe outro usuário com este e-mail." };
   }
 
+  const nextRole = parsed.data.role;
+  const [current] = await db
+    .select({ accountType: users.accountType })
+    .from(users)
+    .where(eq(users.id, parsed.data.userId))
+    .limit(1);
+
+  // Conta admin é só gestão — não mistura com atleta/academia/professor.
+  const nextAccountType =
+    nextRole === "admin"
+      ? ("admin" as const)
+      : current?.accountType === "admin"
+        ? ("athlete" as const)
+        : current?.accountType;
+
   await db
     .update(users)
     .set({
       name: parsed.data.name,
       email,
-      role: parsed.data.role,
+      role: nextRole,
+      ...(nextAccountType ? { accountType: nextAccountType } : {}),
     })
     .where(eq(users.id, parsed.data.userId));
 
-  await db
-    .update(profiles)
-    .set({ name: parsed.data.name })
-    .where(eq(profiles.userId, parsed.data.userId));
+  if (nextRole !== "admin") {
+    await db
+      .update(profiles)
+      .set({ name: parsed.data.name })
+      .where(eq(profiles.userId, parsed.data.userId));
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/usuarios");
-  return { success: "Usuário atualizado." };
+  return {
+    success:
+      nextRole === "admin"
+        ? "Usuário promovido a admin de gestão (sem painel de atleta)."
+        : "Usuário atualizado.",
+  };
 }
 
 export async function toggleUserBlockAction(formData: FormData) {
@@ -204,6 +233,102 @@ export async function resetUserPasswordAction(
   formData: FormData,
 ): Promise<AdminFormState> {
   return resetUserPasswordWhatsAppAction(_prev, formData);
+}
+
+export async function createAcademyAdminAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  const admin = await requireAdmin();
+
+  const parsed = z
+    .object({
+      name: z.string().trim().min(2, "Informe o nome da academia."),
+      professorName: z.string().trim().optional(),
+      whatsapp: z.string().trim().optional(),
+      address: z.string().trim().min(5, "Informe o endereço."),
+      neighborhood: z.string().trim().optional(),
+      affiliation: z.string().trim().optional(),
+      acceptsVisitor: z.coerce.boolean().optional(),
+    })
+    .safeParse({
+      name: formData.get("name"),
+      professorName: formData.get("professorName") || "",
+      whatsapp: formData.get("whatsapp") || "",
+      address: formData.get("address"),
+      neighborhood: formData.get("neighborhood") || "",
+      affiliation: formData.get("affiliation") || "",
+      acceptsVisitor: formData.get("acceptsVisitor") === "on",
+    });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const location = readLocationFromForm(formData);
+  await saveLocationSuggestions(location, admin.id);
+  const cityId = location.customCity ? null : location.cityId;
+  if (!cityId && !location.customCity) {
+    return { error: "Selecione a cidade ou use Outro." };
+  }
+
+  const db = requireDb();
+  let placeName = "";
+  if (cityId) {
+    const [place] = await db
+      .select({
+        city: cities.name,
+        stateCode: states.code,
+        state: states.name,
+      })
+      .from(cities)
+      .innerJoin(states, eq(cities.stateId, states.id))
+      .where(eq(cities.id, cityId))
+      .limit(1);
+    if (place) {
+      placeName = [place.city, place.stateCode, place.state]
+        .filter(Boolean)
+        .join(", ");
+    }
+  }
+
+  const query = [
+    parsed.data.address,
+    parsed.data.neighborhood,
+    placeName,
+    location.customCity,
+    location.customState,
+    location.customCountry,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const coords = await geocodeAddress(query);
+
+  const [created] = await db
+    .insert(academies)
+    .values({
+      slug: uniqueSlug(parsed.data.name),
+      name: parsed.data.name,
+      affiliation: parsed.data.affiliation || null,
+      professorName: parsed.data.professorName || null,
+      whatsapp: parsed.data.whatsapp || null,
+      address: parsed.data.address,
+      neighborhood: parsed.data.neighborhood || null,
+      ...(cityId ? { cityId } : {}),
+      lat: coords ? String(coords.lat) : null,
+      lng: coords ? String(coords.lng) : null,
+      acceptsVisitor: Boolean(parsed.data.acceptsVisitor),
+      ownerId: null,
+    })
+    .returning({ slug: academies.slug });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/academias");
+  revalidatePath("/");
+  return {
+    success: `Academia cadastrada (${created.slug}). Sem dono ainda — o responsável pode solicitar acesso na ficha pública.`,
+  };
 }
 
 export async function updateAcademyAdminAction(

@@ -40,7 +40,7 @@ async function createAccount(input: {
   name: string;
   email: string;
   password: string;
-  accountType: "athlete" | "academy" | "professor";
+  accountType: "athlete" | "academy" | "professor"; // nunca "admin" via cadastro público
 }) {
   const db = requireDb();
   const email = input.email.toLowerCase();

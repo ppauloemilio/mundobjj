@@ -63,6 +63,7 @@ export const accountTypeEnum = pgEnum("account_type", [
   "athlete",
   "academy",
   "professor",
+  "admin",
 ]);
 
 export const suggestionStatusEnum = pgEnum("suggestion_status", [
@@ -401,3 +402,20 @@ export const academySuggestions = pgTable("academy_suggestions", {
   status: suggestionStatusEnum("status").notNull().default("pending"),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+export const academyAccessRequests = pgTable(
+  "academy_access_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    academyId: uuid("academy_id")
+      .notNull()
+      .references(() => academies.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    whatsapp: text("whatsapp"),
+    message: text("message"),
+    status: suggestionStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [index("academy_access_requests_academy_idx").on(table.academyId)],
+);

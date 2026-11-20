@@ -14,6 +14,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           Administração
         </p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">Admin</h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Conta de gestão da plataforma. Perfil de atleta é outro cadastro /
+          outro e-mail.
+        </p>
       </div>
       <nav className="flex flex-wrap gap-3 text-sm">
         <Link href="/admin" className="font-medium underline">

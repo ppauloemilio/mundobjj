@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
+import { AcademyAccessRequestForm } from "@/components/academy-access-request-form";
 import { requireDb } from "@/db";
 import { academies, cities, classSchedules, states } from "@/db/schema";
 import { classKindLabel } from "@/lib/labels";
@@ -76,14 +76,7 @@ export default async function AcademiaPage({
       {academy.address ? <p>{academy.address}</p> : null}
 
       {!academy.ownerId ? (
-        <p className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm">
-          Esta academia ainda não tem dono na plataforma. Se você representa
-          este espaço,{" "}
-          <Link href="/reivindicar" className="underline">
-            reivindique o acesso
-          </Link>{" "}
-          com o código de cadastro.
-        </p>
+        <AcademyAccessRequestForm academyId={academy.id} />
       ) : null}
 
       {academy.acceptsVisitor ? (

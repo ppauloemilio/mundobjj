@@ -3,8 +3,7 @@ import { hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { profiles, users } from "./schema";
-import { uniqueSlug } from "../lib/slug";
+import { users } from "./schema";
 
 config({ path: ".env.local" });
 config();
@@ -38,11 +37,14 @@ async function main() {
         name,
         passwordHash,
         role: "admin",
-        accountType: "athlete",
+        accountType: "admin",
         blockedAt: null,
       })
       .where(eq(users.id, existing.id));
-    console.log(`Admin atualizado: ${email}`);
+    console.log(`Admin de gestão atualizado: ${email}`);
+    console.log(
+      "Use outro e-mail para cadastrar sua conta pessoal de praticante.",
+    );
     return;
   }
 
@@ -53,14 +55,12 @@ async function main() {
     email,
     passwordHash,
     role: "admin",
-    accountType: "athlete",
+    accountType: "admin",
   });
-  await db.insert(profiles).values({
-    userId,
-    name,
-    slug: uniqueSlug("admin"),
-  });
-  console.log(`Admin criado: ${email}`);
+  console.log(`Admin de gestão criado: ${email}`);
+  console.log(
+    "Esta conta é só para administrar o app. Cadastre outro e-mail em /cadastro/atleta para treinar.",
+  );
 }
 
 main().catch((error) => {

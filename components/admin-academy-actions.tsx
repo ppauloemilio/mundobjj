@@ -1,6 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import {
+  createAcademyOwnerAccessAction,
+  type AccessFormState,
+} from "@/app/actions/academy-access";
 import {
   toggleAcademyBlockAction,
   updateAcademyAdminAction,
@@ -8,6 +12,7 @@ import {
 } from "@/app/actions/admin";
 
 const initial: AdminFormState = {};
+const accessInitial: AccessFormState = {};
 
 type AcademyRow = {
   id: string;
@@ -19,7 +24,6 @@ type AcademyRow = {
   acceptsVisitor: boolean;
   blockedAt: Date | null;
   ownerId: string | null;
-  claimToken: string | null;
 };
 
 export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
@@ -27,6 +31,16 @@ export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
     updateAcademyAdminAction,
     initial,
   );
+  const [accessState, accessAction, accessPending] = useActionState(
+    createAcademyOwnerAccessAction,
+    accessInitial,
+  );
+
+  useEffect(() => {
+    if (accessState.whatsappUrl) {
+      window.open(accessState.whatsappUrl, "_blank", "noopener,noreferrer");
+    }
+  }, [accessState.whatsappUrl, accessState.temporaryPassword]);
 
   return (
     <article className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
@@ -111,24 +125,86 @@ export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
       {academy.blockedAt ? (
         <p className="mt-2 text-sm text-[var(--accent)]">Bloqueada na busca</p>
       ) : null}
+
       {!academy.ownerId ? (
-        <div className="mt-3 rounded-xl bg-[var(--accent-soft)] px-3 py-2 text-sm">
-          Sem dono · código de reivindicação:{" "}
-          <strong>{academy.claimToken || "—"}</strong>
-          {academy.claimToken ? (
-            <>
-              {" "}
-              ·{" "}
-              <a
-                href={`/reivindicar?codigo=${academy.claimToken}`}
-                className="underline"
-              >
-                link
-              </a>
-            </>
+        <div className="mt-4 grid gap-3 rounded-xl border border-[var(--line)] p-3">
+          <p className="text-sm font-medium">
+            Sem dono — liberar acesso ao responsável
+          </p>
+          <form action={accessAction} className="grid gap-2 sm:grid-cols-2">
+            <input type="hidden" name="academyId" value={academy.id} />
+            <input type="hidden" name="mode" value="manual" />
+            <label className="flex flex-col gap-1 text-sm">
+              Nome
+              <input
+                name="name"
+                required
+                className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              E-mail
+              <input
+                name="email"
+                type="email"
+                required
+                className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              WhatsApp
+              <input
+                name="whatsapp"
+                defaultValue={academy.whatsapp ?? ""}
+                className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Senha
+              <input
+                name="password"
+                minLength={6}
+                required
+                className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={accessPending}
+              className="min-h-11 rounded-full border border-[var(--line)] px-4 text-sm sm:col-span-2 disabled:opacity-60"
+            >
+              {accessPending ? "..." : "Criar acesso com esta senha"}
+            </button>
+          </form>
+          <p className="text-xs text-[var(--muted)]">
+            Ou aguarde a solicitação na ficha pública e aprove com senha
+            aleatória + WhatsApp na seção acima.
+          </p>
+          {accessState.error ? (
+            <p className="text-sm text-[var(--accent)]">{accessState.error}</p>
+          ) : null}
+          {accessState.temporaryPassword ? (
+            <div className="rounded-xl bg-[var(--accent-soft)] px-3 py-2 text-sm">
+              {accessState.success ? <p>{accessState.success}</p> : null}
+              <p>
+                Senha: <strong>{accessState.temporaryPassword}</strong>
+              </p>
+              {accessState.whatsappUrl ? (
+                <a
+                  href={accessState.whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  Abrir WhatsApp
+                </a>
+              ) : null}
+            </div>
           ) : null}
         </div>
-      ) : null}
+      ) : (
+        <p className="mt-3 text-sm text-green-700">Já tem responsável com acesso.</p>
+      )}
     </article>
   );
 }

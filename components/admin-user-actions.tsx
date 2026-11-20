@@ -16,7 +16,7 @@ type UserRow = {
   name: string | null;
   email: string | null;
   role: "user" | "admin";
-  accountType: "athlete" | "academy" | "professor";
+  accountType: "athlete" | "academy" | "professor" | "admin";
   blockedAt: Date | null;
   whatsapp: string | null;
 };
@@ -25,6 +25,7 @@ const accountLabel = {
   athlete: "Praticante",
   academy: "Academia",
   professor: "Professor",
+  admin: "Admin (gestão)",
 } as const;
 
 export function AdminUserCard({
@@ -98,9 +99,12 @@ export function AdminUserCard({
             defaultValue={user.role}
             className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
           >
-            <option value="user">Usuário</option>
-            <option value="admin">Admin</option>
+            <option value="user">Usuário (atleta/academia/professor)</option>
+            <option value="admin">Admin (só gestão do app)</option>
           </select>
+          <span className="text-xs text-[var(--muted)]">
+            Admin não usa painel de atleta — treino é outra conta.
+          </span>
         </label>
         <div className="flex items-end">
           <button
