@@ -49,6 +49,13 @@ export function BottomNav({ auth }: { auth: HeaderAuth }) {
         title={t("navMore")}
       >
         <div className="flex flex-col gap-3">
+          <Link
+            href="/"
+            onClick={() => setMoreOpen(false)}
+            className="flex min-h-11 items-center rounded-xl border border-[var(--line)] px-3 text-[14px] font-medium"
+          >
+            {t("backToHome")}
+          </Link>
           <LanguageSwitcher />
           <ThemeToggle />
           <LogoutButton className="flex min-h-11 w-full items-center rounded-xl border border-[var(--line)] px-3 text-left text-[14px] text-[var(--mute)]">

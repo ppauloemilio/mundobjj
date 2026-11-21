@@ -85,6 +85,12 @@ function DesktopAuth({ auth }: { auth: HeaderAuth }) {
     return (
       <div className="flex items-center gap-3">
         <Link
+          href="/"
+          className="text-[13px] font-medium text-[var(--ink)]/80 hover:text-[var(--ink)]"
+        >
+          {t("navHome")}
+        </Link>
+        <Link
           href={auth.isAdmin ? "/admin" : auth.panelHref}
           className="text-[13px] font-medium text-[var(--ink)]/80 hover:text-[var(--ink)]"
         >
@@ -127,6 +133,13 @@ function MobileAuth({
   if (auth.loggedIn) {
     return (
       <div className="flex flex-col gap-2">
+        <Link
+          href="/"
+          onClick={onNavigate}
+          className="flex min-h-11 items-center rounded-xl border border-[var(--line)] px-3 text-[14px] font-medium"
+        >
+          {t("navHome")}
+        </Link>
         <Link
           href={auth.isAdmin ? "/admin" : auth.panelHref}
           onClick={onNavigate}

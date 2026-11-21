@@ -175,7 +175,14 @@ export function ProfileForm({
             </button>
           </form>
         </div>
-      ) : null}
+      ) : (
+        <div className="ui-card flex flex-col gap-2 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[13px] text-[var(--mute)]">{t("backToHomeHint")}</p>
+          <Link href="/" className="ui-btn ui-btn-primary w-full sm:w-auto">
+            {t("backToHome")}
+          </Link>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
@@ -184,12 +191,20 @@ export function ProfileForm({
         >
           /atleta/{profile.slug}
         </Link>
-        <Link
-          href="/painel/configuracoes"
-          className="text-[13px] font-medium underline"
-        >
-          {t("settingsLink")}
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/"
+            className="text-[13px] font-medium underline"
+          >
+            {t("navHome")}
+          </Link>
+          <Link
+            href="/painel/configuracoes"
+            className="text-[13px] font-medium underline"
+          >
+            {t("settingsLink")}
+          </Link>
+        </div>
       </div>
 
       <nav

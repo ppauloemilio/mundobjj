@@ -162,6 +162,22 @@ export async function getShellSession() {
       // try next salt
     }
   }
+
+  // Fallback when cookie exists but decode salt mismatches — keeps bottom nav/header auth.
+  try {
+    const session = await auth();
+    if (session?.user?.id) {
+      return {
+        user: {
+          id: session.user.id,
+          role: session.user.role ?? "user",
+          accountType: session.user.accountType ?? "athlete",
+        },
+      };
+    }
+  } catch {
+    // ignore
+  }
   return null;
 }
 
