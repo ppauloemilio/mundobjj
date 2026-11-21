@@ -263,8 +263,8 @@ export function ProfileForm({
                 const division = ageDivisionFromBirthDate(birthDate || null);
                 if (!division) return null;
                 return (
-                  <p className="max-w-[11rem] text-center text-[11px] leading-snug text-[var(--mute)]">
-                    <span className="font-semibold text-[var(--ink)]">
+                  <p className="max-w-[12rem] text-center text-[14px] leading-snug text-[var(--mute)]">
+                    <span className="text-[16px] font-semibold tracking-tight text-[var(--ink)]">
                       {t(`ageDiv_${division.id}` as "ageDiv_ADULT")}
                     </span>
                     <br />

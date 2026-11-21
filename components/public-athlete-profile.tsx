@@ -108,8 +108,8 @@ export function PublicAthleteProfile({
             label={t(`belt_${profile.belt}` as "belt_white")}
           />
           {ageDivision ? (
-            <p className="max-w-[11rem] text-center text-[11px] leading-snug text-[var(--mute)]">
-              <span className="font-semibold text-[var(--ink)]">
+            <p className="max-w-[12rem] text-center text-[14px] leading-snug text-[var(--mute)]">
+              <span className="text-[16px] font-semibold tracking-tight text-[var(--ink)]">
                 {t(`ageDiv_${ageDivision.id}` as "ageDiv_ADULT")}
               </span>
               <br />

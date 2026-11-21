@@ -110,7 +110,7 @@ export function BeltRankVisual({
         })}
       </svg>
       {label ? (
-        <span className="text-[11px] font-medium text-[var(--mute)]">
+        <span className="text-[13px] font-medium text-[var(--ink)]/80">
           {label}
           {count > 0 ? ` · ${count}` : ""}
         </span>
