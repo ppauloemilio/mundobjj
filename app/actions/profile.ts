@@ -2,7 +2,6 @@
 
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signOut } from "@/auth";
 import { requireDb } from "@/db";
@@ -271,7 +270,7 @@ export async function isSlugAvailable(slugRaw: string, userId?: string) {
   return { available: !taken, slug, reason: taken ? ("taken" as const) : null };
 }
 
-export type DeleteAccountState = { error?: string };
+export type DeleteAccountState = { error?: string; redirectTo?: string };
 
 export async function deleteAccountAction(
   _prev: DeleteAccountState,
@@ -286,5 +285,5 @@ export async function deleteAccountAction(
   const db = requireDb();
   await db.delete(users).where(eq(users.id, user.id));
   await signOut({ redirect: false });
-  redirect("/");
+  return { redirectTo: "/" };
 }

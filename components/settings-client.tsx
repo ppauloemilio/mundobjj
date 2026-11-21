@@ -9,6 +9,7 @@ import { ChangePasswordForm } from "@/components/change-password-form";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { useLocale } from "@/components/locale-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuthRedirect } from "@/lib/use-auth-redirect";
 
 const deleteInitial: DeleteAccountState = {};
 
@@ -18,6 +19,7 @@ export function SettingsClient() {
     deleteAccountAction,
     deleteInitial,
   );
+  useAuthRedirect(deleteState.redirectTo);
 
   return (
     <div className="flex flex-col gap-4">

@@ -3,9 +3,8 @@
 import { hash } from "bcryptjs";
 import { and, eq } from "drizzle-orm";
 import { AuthError } from "next-auth";
-import { redirect } from "next/navigation";
 import { z } from "zod";
-import { homePathForUser, signIn, signOut } from "@/auth";
+import { signIn, signOut } from "@/auth";
 import { requireDb } from "@/db";
 import {
   academies,
@@ -34,7 +33,30 @@ const loginSchema = z.object({
 
 export type AuthFormState = {
   error?: string;
+  /** Full page navigation after session cookie changes (avoids soft-nav crash). */
+  redirectTo?: string;
 };
+
+async function signInWithoutSoftRedirect(
+  email: string,
+  password: string,
+  redirectTo: string,
+  failMessage: string,
+): Promise<AuthFormState> {
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { error: failMessage };
+    }
+    throw error;
+  }
+  return { redirectTo };
+}
 
 async function createAccount(input: {
   name: string;
@@ -155,20 +177,12 @@ export async function registerAthleteAction(
     }
   }
 
-  try {
-    await signIn("credentials", {
-      email: created.email,
-      password: parsed.data.password,
-      redirectTo: "/painel",
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Conta criada, mas o login automático falhou. Entre de novo." };
-    }
-    throw error;
-  }
-
-  return {};
+  return signInWithoutSoftRedirect(
+    created.email,
+    parsed.data.password,
+    "/painel",
+    "Conta criada, mas o login automático falhou. Entre de novo.",
+  );
 }
 
 export async function registerAcademyAction(
@@ -210,20 +224,12 @@ export async function registerAcademyAction(
     acceptsVisitor: false,
   });
 
-  try {
-    await signIn("credentials", {
-      email: created.email,
-      password: parsed.data.password,
-      redirectTo: "/painel/academia",
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Conta criada, mas o login automático falhou. Entre de novo." };
-    }
-    throw error;
-  }
-
-  return {};
+  return signInWithoutSoftRedirect(
+    created.email,
+    parsed.data.password,
+    "/painel/academia",
+    "Conta criada, mas o login automático falhou. Entre de novo.",
+  );
 }
 
 export async function registerProfessorAction(
@@ -257,20 +263,12 @@ export async function registerProfessorAction(
       .where(eq(profiles.id, created.profileId));
   }
 
-  try {
-    await signIn("credentials", {
-      email: created.email,
-      password: parsed.data.password,
-      redirectTo: "/painel/professor",
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Conta criada, mas o login automático falhou. Entre de novo." };
-    }
-    throw error;
-  }
-
-  return {};
+  return signInWithoutSoftRedirect(
+    created.email,
+    parsed.data.password,
+    "/painel/professor",
+    "Conta criada, mas o login automático falhou. Entre de novo.",
+  );
 }
 
 export async function loginAction(
@@ -308,23 +306,14 @@ export async function loginAction(
   const { postLoginPathForUser } = await import("@/auth");
   const redirectTo = await postLoginPathForUser(user);
 
-  try {
-    await signIn("credentials", {
-      email,
-      password: parsed.data.password,
-      redirectTo,
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "E-mail ou senha incorretos." };
-    }
-    throw error;
-  }
-
-  return {};
+  return signInWithoutSoftRedirect(
+    email,
+    parsed.data.password,
+    redirectTo,
+    "E-mail ou senha incorretos.",
+  );
 }
 
 export async function logoutAction() {
-  await signOut({ redirectTo: "/" });
-  redirect("/");
+  await signOut({ redirect: false });
 }

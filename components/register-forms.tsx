@@ -12,6 +12,7 @@ import { AcademySelect } from "@/components/academy-select";
 import { LocationFields } from "@/components/location-fields";
 import { useLocale } from "@/components/locale-provider";
 import { ProfessorSelect } from "@/components/professor-select";
+import { useAuthRedirect } from "@/lib/use-auth-redirect";
 
 const initial: AuthFormState = {};
 
@@ -19,6 +20,7 @@ export function AthleteRegisterForm() {
   const { t } = useLocale();
   const [state, action, pending] = useActionState(registerAthleteAction, initial);
   const [academyId, setAcademyId] = useState("");
+  useAuthRedirect(state.redirectTo);
 
   return (
     <form action={action} className="flex flex-col gap-3.5">
@@ -49,6 +51,7 @@ export function AthleteRegisterForm() {
 export function AcademyRegisterForm() {
   const { t } = useLocale();
   const [state, action, pending] = useActionState(registerAcademyAction, initial);
+  useAuthRedirect(state.redirectTo);
 
   return (
     <form action={action} className="flex flex-col gap-3.5">
@@ -78,6 +81,7 @@ export function AcademyRegisterForm() {
 export function ProfessorRegisterForm() {
   const { t } = useLocale();
   const [state, action, pending] = useActionState(registerProfessorAction, initial);
+  useAuthRedirect(state.redirectTo);
 
   return (
     <form action={action} className="flex flex-col gap-3.5">

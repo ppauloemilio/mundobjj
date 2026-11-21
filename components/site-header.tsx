@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
-import { logoutAction } from "@/app/actions/auth";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { LogoutButton } from "@/components/logout-button";
 import { useLocale } from "@/components/locale-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -90,14 +90,9 @@ function DesktopAuth({ auth }: { auth: HeaderAuth }) {
         >
           {auth.isAdmin ? t("navAdmin") : t("navPanel")}
         </Link>
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            className="min-h-11 text-[13px] text-[var(--mute)] hover:text-[var(--ink)]"
-          >
-            {t("navLogout")}
-          </button>
-        </form>
+        <LogoutButton className="min-h-11 text-[13px] text-[var(--mute)] hover:text-[var(--ink)]">
+          {t("navLogout")}
+        </LogoutButton>
       </div>
     );
   }
@@ -139,14 +134,9 @@ function MobileAuth({
         >
           {auth.isAdmin ? t("navAdmin") : t("navPanel")}
         </Link>
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            className="flex min-h-11 w-full items-center rounded-xl border border-[var(--line)] px-3 text-left text-[14px] text-[var(--mute)]"
-          >
-            {t("navLogout")}
-          </button>
-        </form>
+        <LogoutButton className="flex min-h-11 w-full items-center rounded-xl border border-[var(--line)] px-3 text-left text-[14px] text-[var(--mute)]">
+          {t("navLogout")}
+        </LogoutButton>
       </div>
     );
   }

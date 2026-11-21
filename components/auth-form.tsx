@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction, type AuthFormState } from "@/app/actions/auth";
 import { useLocale } from "@/components/locale-provider";
+import { useAuthRedirect } from "@/lib/use-auth-redirect";
 
 const initial: AuthFormState = {};
 
 export function LoginForm() {
   const { t } = useLocale();
   const [state, action, pending] = useActionState(loginAction, initial);
+  useAuthRedirect(state.redirectTo);
 
   return (
     <form action={action} className="flex flex-col gap-3.5">
@@ -32,10 +34,10 @@ export function LoginForm() {
       ) : null}
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || Boolean(state.redirectTo)}
         className="ui-btn ui-btn-primary w-fit disabled:opacity-60"
       >
-        {pending ? t("loginLoading") : t("loginSubmit")}
+        {pending || state.redirectTo ? t("loginLoading") : t("loginSubmit")}
       </button>
       <p className="text-[13px] text-[var(--muted)]">
         {t("loginNoAccount")}{" "}

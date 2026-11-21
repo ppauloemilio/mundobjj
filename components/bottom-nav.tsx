@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { logoutAction } from "@/app/actions/auth";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { LogoutButton } from "@/components/logout-button";
 import { useLocale } from "@/components/locale-provider";
 import type { HeaderAuth } from "@/components/site-header";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -51,14 +51,9 @@ export function BottomNav({ auth }: { auth: HeaderAuth }) {
         <div className="flex flex-col gap-3">
           <LanguageSwitcher />
           <ThemeToggle />
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="flex min-h-11 w-full items-center rounded-xl border border-[var(--line)] px-3 text-left text-[14px] text-[var(--mute)]"
-            >
-              {t("navLogout")}
-            </button>
-          </form>
+          <LogoutButton className="flex min-h-11 w-full items-center rounded-xl border border-[var(--line)] px-3 text-left text-[14px] text-[var(--mute)]">
+            {t("navLogout")}
+          </LogoutButton>
         </div>
       </BottomSheet>
     </>
