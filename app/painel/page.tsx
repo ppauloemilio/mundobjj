@@ -1,11 +1,13 @@
-import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { ChangePasswordForm } from "@/components/change-password-form";
+import { listCompetitionsForProfile } from "@/app/actions/competitions";
+import { CompetitionsPanel } from "@/components/competitions-panel";
 import { ProfileForm } from "@/components/profile-form";
 import { requireDb } from "@/db";
 import { athleteProfessors, memberships } from "@/db/schema";
 import { getCitySelection } from "@/lib/location-input";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { t } from "@/lib/i18n/messages";
 import { getProfileForUser, requireUser } from "@/lib/session";
 
 export const instant = false;
@@ -15,9 +17,10 @@ export default async function PainelPage() {
   if (user.accountType === "professor") redirect("/painel/professor");
   if (user.accountType === "academy") redirect("/painel/academia");
   const profile = await getProfileForUser(user.id);
+  const locale = await getRequestLocale();
 
   if (!profile) {
-    return <p>Perfil não encontrado.</p>;
+    return <p>{t(locale, "profileNotFound")}</p>;
   }
 
   const db = requireDb();
@@ -48,19 +51,18 @@ export default async function PainelPage() {
 
   const place = await getCitySelection(profile.cityId);
   const needsOnboarding = !profile.onboardingCompletedAt;
+  const comps = profile.competitor
+    ? await listCompetitionsForProfile(profile.id, { includeHidden: true })
+    : [];
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-6">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">
-          {needsOnboarding ? "Complete seu perfil" : "Meu perfil"}
+          {needsOnboarding
+            ? t(locale, "completeProfileTitle")
+            : t(locale, "myProfileTitle")}
         </h1>
-        <p className="mt-1.5 text-[13px] text-[var(--muted)]">
-          Perfil público:{" "}
-          <Link href={`/atleta/${profile.slug}`} className="underline">
-            /atleta/{profile.slug}
-          </Link>
-        </p>
       </div>
       <ProfileForm
         showHomeCta={needsOnboarding}
@@ -79,6 +81,8 @@ export default async function PainelPage() {
           competitor: profile.competitor,
           bio: profile.bio,
           weightKg: profile.weightKg,
+          weightCategory: profile.weightCategory,
+          avatarUrl: profile.avatarUrl,
           startedAt: profile.startedAt,
           whatsapp: profile.whatsapp,
           contactEmail: profile.contactEmail,
@@ -87,7 +91,23 @@ export default async function PainelPage() {
           showEmail: profile.showEmail,
         }}
       />
-      <ChangePasswordForm />
+
+      {profile.competitor ? (
+        <div id="section-competitions" className="flex flex-col gap-3">
+          <h2 className="font-display text-xl font-semibold tracking-tight">
+            {t(locale, "compSectionTitle")}
+          </h2>
+          <CompetitionsPanel
+            initial={comps}
+            profile={{
+              belt: profile.belt,
+              weightCategory: profile.weightCategory,
+              name: profile.name,
+              cityName: place?.cityName,
+            }}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

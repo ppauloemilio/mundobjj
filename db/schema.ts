@@ -72,10 +72,54 @@ export const suggestionStatusEnum = pgEnum("suggestion_status", [
   "rejected",
 ]);
 
+export const weightCategoryEnum = pgEnum("weight_category", [
+  "feather",
+  "light",
+  "middle",
+  "medium_heavy",
+  "heavy",
+  "super_heavy",
+  "ultra_heavy",
+]);
+
 export const locationKindEnum = pgEnum("location_kind", [
   "country",
   "state",
   "city",
+]);
+
+export const competitionFederationEnum = pgEnum("competition_federation", [
+  "CBJJ",
+  "IBJJF",
+  "CBJJO",
+  "STATE",
+  "LOCAL",
+  "OTHER",
+]);
+
+export const competitionResultEnum = pgEnum("competition_result", [
+  "GOLD",
+  "SILVER",
+  "BRONZE",
+  "PARTICIPATED",
+]);
+
+export const competitionModalityEnum = pgEnum("competition_modality", [
+  "GI",
+  "NOGI",
+]);
+
+export const competitionAgeClassEnum = pgEnum("competition_age_class", [
+  "ADULT",
+  "MASTER1",
+  "MASTER2",
+  "MASTER3",
+  "MASTER4",
+  "MASTER5",
+  "MASTER6",
+  "MASTER7",
+  "JUVENILE",
+  "OTHER",
 ]);
 
 export const users = pgTable("user", {
@@ -183,6 +227,8 @@ export const profiles = pgTable("profiles", {
   belt: beltEnum("belt").notNull().default("white"),
   stripes: smallint("stripes").notNull().default(0),
   weightKg: numeric("weight_kg", { precision: 5, scale: 2 }),
+  weightCategory: weightCategoryEnum("weight_category"),
+  avatarUrl: text("avatar_url"),
   style: trainingStyleEnum("style").notNull().default("both"),
   competitor: boolean("competitor").notNull().default(false),
   bio: text("bio"),
@@ -439,4 +485,42 @@ export const academyAccessRequests = pgTable(
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
   (table) => [index("academy_access_requests_academy_idx").on(table.academyId)],
+);
+
+export const competitions = pgTable(
+  "competitions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    eventDate: date("event_date").notNull(),
+    city: text("city"),
+    countryCode: text("country_code"),
+    federation: competitionFederationEnum("federation").notNull().default("OTHER"),
+    belt: text("belt").notNull(),
+    weightClass: text("weight_class"),
+    ageClass: competitionAgeClassEnum("age_class").notNull().default("ADULT"),
+    modality: competitionModalityEnum("modality").notNull().default("GI"),
+    isAbsolute: boolean("is_absolute").notNull().default(false),
+    result: competitionResultEnum("result").notNull(),
+    podiumPhotoUrl: text("podium_photo_url"),
+    bracketUrl: text("bracket_url"),
+    hidden: boolean("hidden").notNull().default(false),
+    verifiedByProfessorId: uuid("verified_by_professor_id").references(
+      () => profiles.id,
+      { onDelete: "set null" },
+    ),
+    verifiedAt: timestamp("verified_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("competitions_profile_idx").on(table.profileId),
+    index("competitions_profile_date_idx").on(
+      table.profileId,
+      table.eventDate.desc(),
+    ),
+  ],
 );

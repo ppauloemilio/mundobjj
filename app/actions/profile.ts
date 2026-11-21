@@ -2,19 +2,23 @@
 
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
+import { signOut } from "@/auth";
 import { requireDb } from "@/db";
 import {
   academies,
   academySuggestions,
   memberships,
   profiles,
+  users,
 } from "@/db/schema";
 import { saveAthleteProfessorLink } from "@/lib/athlete-professor";
 import {
   readLocationFromForm,
   resolveLocationToCityId,
 } from "@/lib/location-input";
+import { toE164Whatsapp, weightCategories } from "@/lib/profile-display";
 import { requireUser } from "@/lib/session";
 import { slugify } from "@/lib/slug";
 
@@ -37,6 +41,8 @@ const profileSchema = z.object({
   competitor: z.boolean(),
   bio: z.string().trim().max(500),
   weightKg: z.string().trim(),
+  weightCategory: z.string().trim(),
+  avatarUrl: z.string().trim().max(400_000).optional().or(z.literal("")),
   startedAt: z.string().trim(),
   whatsapp: z.string().trim(),
   contactEmail: z.string().trim(),
@@ -84,6 +90,8 @@ export async function updateProfileAction(
       competitor: formData.get("competitor") === "on",
       bio: formData.get("bio") || "",
       weightKg: formData.get("weightKg") || "",
+      weightCategory: formData.get("weightCategory") || "",
+      avatarUrl: formData.get("avatarUrl") || "",
       startedAt: formData.get("startedAt") || "",
       whatsapp: formData.get("whatsapp") || "",
       contactEmail: formData.get("contactEmail") || "",
@@ -114,10 +122,20 @@ export async function updateProfileAction(
       return { error: "Peso inválido." };
     }
 
+    let whatsapp: string | null = null;
+    if (parsed.data.whatsapp) {
+      whatsapp = toE164Whatsapp(parsed.data.whatsapp);
+      if (!whatsapp) return { error: "WhatsApp inválido. Use DDI + DDD + número." };
+    }
+
     const startedAt = parsed.data.startedAt || null;
     if (startedAt && !/^\d{4}-\d{2}-\d{2}$/.test(startedAt)) {
       return { error: "Data 'treina desde' inválida." };
     }
+
+    const avatarUrl = parsed.data.avatarUrl?.startsWith("data:image/")
+      ? parsed.data.avatarUrl
+      : parsed.data.avatarUrl || null;
 
     const db = requireDb();
     const [taken] = await db
@@ -132,6 +150,12 @@ export async function updateProfileAction(
 
     const location = readLocationFromForm(formData);
     const resolvedCityId = await resolveLocationToCityId(location, user.id);
+    const rawCategory = parsed.data.weightCategory;
+    const weightCategory =
+      rawCategory &&
+      (weightCategories as readonly string[]).includes(rawCategory)
+        ? (rawCategory as (typeof weightCategories)[number])
+        : null;
 
     const [profile] = await db
       .update(profiles)
@@ -145,11 +169,12 @@ export async function updateProfileAction(
         competitor: parsed.data.competitor,
         bio: parsed.data.bio || null,
         weightKg,
+        weightCategory,
+        avatarUrl,
         startedAt,
-        whatsapp: parsed.data.whatsapp || null,
+        whatsapp,
         contactEmail:
-          contactEmail ||
-          (user.email ? user.email.toLowerCase() : null),
+          contactEmail || (user.email ? user.email.toLowerCase() : null),
         showWhatsapp: parsed.data.showWhatsapp,
         showEmail: parsed.data.showEmail,
         onboardingCompletedAt: new Date(),
@@ -205,6 +230,7 @@ export async function updateProfileAction(
     }
 
     revalidatePath("/painel");
+    revalidatePath("/painel/configuracoes");
     revalidatePath("/");
     revalidatePath(`/atleta/${slug}`);
     return {
@@ -243,4 +269,22 @@ export async function isSlugAvailable(slugRaw: string, userId?: string) {
     .where(query)
     .limit(1);
   return { available: !taken, slug, reason: taken ? ("taken" as const) : null };
+}
+
+export type DeleteAccountState = { error?: string };
+
+export async function deleteAccountAction(
+  _prev: DeleteAccountState,
+  formData: FormData,
+): Promise<DeleteAccountState> {
+  const user = await requireUser();
+  const confirm = String(formData.get("confirm") || "").trim().toUpperCase();
+  if (confirm !== "DELETE" && confirm !== "EXCLUIR") {
+    return { error: "Digite EXCLUIR para confirmar." };
+  }
+
+  const db = requireDb();
+  await db.delete(users).where(eq(users.id, user.id));
+  await signOut({ redirect: false });
+  redirect("/");
 }

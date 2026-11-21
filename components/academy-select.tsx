@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "@/components/locale-provider";
 
 type AcademyOption = { id: string; name: string; city: string | null };
 
@@ -15,6 +16,7 @@ export function AcademySelect({
   required?: boolean;
   onAcademyIdChange?: (academyId: string) => void;
 }) {
+  const { t } = useLocale();
   const [academies, setAcademies] = useState<AcademyOption[]>([]);
   const [value, setValue] = useState(initialAcademyId || "");
   const [otherName, setOtherName] = useState("");
@@ -30,8 +32,8 @@ export function AcademySelect({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="flex flex-col gap-1 text-sm">
-        Academia
+      <label className="flex flex-col gap-1 text-[13px]">
+        {t("academyLabel")}
         <select
           name={isOther ? undefined : "academyId"}
           value={value}
@@ -41,31 +43,30 @@ export function AcademySelect({
             setValue(next);
             onAcademyIdChange?.(next === OTHER ? "" : next);
           }}
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+          className="ui-input"
         >
-          <option value="">Selecione</option>
+          <option value="">{t("searchSelect")}</option>
           {academies.map((academy) => (
             <option key={academy.id} value={academy.id}>
               {academy.name}
               {academy.city ? ` · ${academy.city}` : ""}
             </option>
           ))}
-          <option value={OTHER}>Outro (ainda não cadastrada)</option>
+          <option value={OTHER}>{t("academyNotFound")}</option>
         </select>
       </label>
       {isOther ? (
-        <label className="flex flex-col gap-1 text-sm">
-          Nome da academia
+        <label className="flex flex-col gap-1 text-[13px]">
+          {t("academyName")}
           <input
             name="suggestedAcademyName"
             value={otherName}
             onChange={(event) => setOtherName(event.target.value)}
             required={required}
-            placeholder="Ex.: Alliance Centro"
-            className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+            className="ui-input"
           />
-          <span className="text-xs text-[var(--muted)]">
-            O admin poderá contatar essa academia para oferecer o cadastro.
+          <span className="text-[11px] text-[var(--mute)]">
+            {t("academySuggestHint")}
           </span>
         </label>
       ) : null}

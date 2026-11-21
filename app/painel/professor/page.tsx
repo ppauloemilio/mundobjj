@@ -1,16 +1,20 @@
 import Link from "next/link";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { ProfileForm } from "@/components/profile-form";
 import { ProfessorAcademyLinkForm } from "@/components/professor-academy-link-form";
+import { VerifyCompetitionButton } from "@/components/verify-competition-button";
 import { requireDb } from "@/db";
 import {
   academies,
   academyProfessors,
   athleteProfessors,
+  competitions,
   profiles,
 } from "@/db/schema";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { t } from "@/lib/i18n/messages";
 import { getCitySelection } from "@/lib/location-input";
 import { getProfileForUser, requireUser } from "@/lib/session";
 
@@ -40,6 +44,7 @@ export default async function PainelProfessorPage() {
 
   const students = await db
     .select({
+      id: profiles.id,
       name: profiles.name,
       slug: profiles.slug,
       belt: profiles.belt,
@@ -56,7 +61,33 @@ export default async function PainelProfessorPage() {
     )
     .orderBy(asc(profiles.name));
 
+  const studentIds = students.map((student) => student.id);
+  const pendingComps =
+    studentIds.length === 0
+      ? []
+      : await db
+          .select({
+            id: competitions.id,
+            name: competitions.name,
+            eventDate: competitions.eventDate,
+            result: competitions.result,
+            athleteName: profiles.name,
+            athleteSlug: profiles.slug,
+          })
+          .from(competitions)
+          .innerJoin(profiles, eq(competitions.profileId, profiles.id))
+          .where(
+            and(
+              inArray(competitions.profileId, studentIds),
+              isNull(competitions.verifiedAt),
+              eq(competitions.hidden, false),
+            ),
+          )
+          .orderBy(desc(competitions.eventDate))
+          .limit(20);
+
   const place = await getCitySelection(profile.cityId);
+  const locale = await getRequestLocale();
 
   return (
     <section className="flex flex-col gap-8">
@@ -146,6 +177,34 @@ export default async function PainelProfessorPage() {
           ))
         )}
       </section>
+
+      {pendingComps.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold">
+            {t(locale, "compPendingVerify")}
+          </h2>
+          {pendingComps.map((comp) => (
+            <div
+              key={comp.id}
+              className="flex flex-col gap-2 rounded-2xl border border-[var(--line)] bg-[var(--card)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="font-medium">{comp.name}</p>
+                <p className="text-sm text-[var(--muted)]">
+                  <Link href={`/atleta/${comp.athleteSlug}`} className="underline">
+                    {comp.athleteName}
+                  </Link>
+                  {" · "}
+                  {comp.eventDate}
+                  {" · "}
+                  {t(locale, `compResult_${comp.result}` as "compResult_GOLD")}
+                </p>
+              </div>
+              <VerifyCompetitionButton competitionId={comp.id} />
+            </div>
+          ))}
+        </section>
+      ) : null}
     </section>
   );
 }

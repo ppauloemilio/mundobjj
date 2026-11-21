@@ -1,33 +1,95 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f5f6f8;
-  --foreground: #12151a;
-  --ink: #12151a;
-  --paper: #fbfbfc;
+/* Semantic tokens — light (default) */
+:root,
+[data-theme="light"] {
+  --bg: #f5f5f7;
   --card: #ffffff;
-  --line: #e6e8ec;
-  --muted: #6b7280;
-  --accent: #b4232e;
-  --accent-soft: #f8e9eb;
-  --accent-2: #8b939e;
-  --shadow: 0 1px 2px rgba(18, 21, 26, 0.04), 0 8px 24px rgba(18, 21, 26, 0.04);
+  --ink: #17161b;
+  --mute: #6b6a73;
+  --line: #e4e3e8;
+  --brand: #b4232e;
+  --hero: #1b181c;
+  --gold: #c9961a;
+  --silver: #8d929b;
+  --bronze: #a8623a;
+  --brand-soft: color-mix(in srgb, var(--brand) 12%, var(--card));
+  --shadow: 0 1px 2px rgba(23, 22, 27, 0.04), 0 8px 24px rgba(23, 22, 27, 0.05);
   --radius: 0.75rem;
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--brand) 28%, transparent);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121115;
+    --card: #1c1b21;
+    --ink: #f1f0f4;
+    --mute: #a09fa9;
+    --line: #2c2b33;
+    --brand: #d24a48;
+    --hero: #0b0a0d;
+    --gold: #e0b03a;
+    --silver: #a9aeb7;
+    --bronze: #cf8559;
+    --brand-soft: color-mix(in srgb, var(--brand) 18%, var(--card));
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.28);
+    color-scheme: dark;
+  }
+}
+
+[data-theme="dark"] {
+  --bg: #121115;
+  --card: #1c1b21;
+  --ink: #f1f0f4;
+  --mute: #a09fa9;
+  --line: #2c2b33;
+  --brand: #d24a48;
+  --hero: #0b0a0d;
+  --gold: #e0b03a;
+  --silver: #a9aeb7;
+  --bronze: #cf8559;
+  --brand-soft: color-mix(in srgb, var(--brand) 18%, var(--card));
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.28);
+  color-scheme: dark;
+}
+
+/* Legacy aliases used across existing components */
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --paper: #fbfbfc;
+  --muted: var(--mute);
+  --accent: var(--brand);
+  --accent-soft: var(--brand-soft);
+  --accent-2: var(--silver);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-mute: var(--mute);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-hero: var(--hero);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
   --font-sans: var(--font-manrope);
   --font-display: var(--font-sora);
 }
 
 body {
   background:
-    radial-gradient(1200px 500px at 10% -10%, rgba(180, 35, 46, 0.06), transparent 55%),
-    radial-gradient(900px 420px at 100% 0%, rgba(18, 21, 26, 0.05), transparent 50%),
-    var(--background);
-  color: var(--foreground);
+    radial-gradient(1200px 500px at 10% -10%, color-mix(in srgb, var(--brand) 8%, transparent), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, color-mix(in srgb, var(--ink) 5%, transparent), transparent 50%),
+    var(--bg);
+  color: var(--ink);
   font-family: var(--font-manrope), system-ui, sans-serif;
   font-size: 0.9375rem;
   line-height: 1.5;
@@ -37,20 +99,37 @@ body {
   font-family: var(--font-sora), var(--font-manrope), system-ui, sans-serif;
 }
 
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .ui-input {
-  min-height: 2.375rem;
+  min-height: 2.75rem;
   border-radius: var(--radius);
   border: 1px solid var(--line);
-  background: #fff;
-  padding: 0.45rem 0.75rem;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .ui-input:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  box-shadow: var(--focus-ring);
 }
 
 .ui-input:disabled {
@@ -65,9 +144,10 @@ body {
 }
 
 .ui-btn {
-  min-height: 2.375rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
   border-radius: 999px;
-  padding: 0.45rem 1.1rem;
+  padding: 0.5rem 1.15rem;
   font-size: 0.8125rem;
   font-weight: 600;
   transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
@@ -78,7 +158,7 @@ body {
 }
 
 .ui-btn-primary {
-  background: var(--accent);
+  background: var(--brand);
   color: #fff;
 }
 
@@ -93,4 +173,46 @@ body {
   border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
   background: color-mix(in srgb, var(--card) 88%, transparent);
   backdrop-filter: blur(10px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.app-shell-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+@media (max-width: 639px) {
+  .app-shell-main.has-bottom-nav {
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.sticky-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 45;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+@media (min-width: 640px) {
+  .bottom-nav {
+    display: none;
+  }
 }

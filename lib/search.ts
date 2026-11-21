@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   academies,
@@ -26,6 +26,7 @@ export type AcademyResult = {
   lng: number | null;
   distanceKm: number | null;
   nextClass: string | null;
+  verified: boolean;
 };
 
 export type StoreResult = {
@@ -43,11 +44,15 @@ export type StoreResult = {
   sponsored: true;
 };
 
-type PlaceFilter = {
+export type PlaceFilter = {
   cityId?: string;
   lat?: number;
   lng?: number;
   radiusKm?: number;
+  q?: string;
+  acceptsVisitor?: boolean;
+  classKinds?: string[];
+  todayOnly?: boolean;
 };
 
 function toNumber(value: string | null) {
@@ -74,6 +79,17 @@ function box(lat: number, lng: number, radiusKm: number) {
   return { latDelta, lngDelta };
 }
 
+function saoPauloWeekday(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "short",
+  }).formatToParts(now);
+  const weekdayName = parts.find((part) => part.type === "weekday")?.value;
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
+    weekdayName ?? "Sun",
+  );
+}
+
 export async function searchAcademies(filter: PlaceFilter): Promise<AcademyResult[]> {
   const db = getDb();
   if (!db) return [];
@@ -85,7 +101,14 @@ export async function searchAcademies(filter: PlaceFilter): Promise<AcademyResul
 
   const conditions = [isNull(academies.blockedAt)];
   if (filter.cityId) conditions.push(eq(academies.cityId, filter.cityId));
-  if (filter.lat != null && filter.lng != null) {
+  if (filter.acceptsVisitor) conditions.push(eq(academies.acceptsVisitor, true));
+  if (filter.q?.trim()) {
+    const needle = `%${filter.q.trim()}%`;
+    conditions.push(
+      or(ilike(academies.name, needle), ilike(cities.name, needle))!,
+    );
+  }
+  if (filter.lat != null && filter.lng != null && !filter.q?.trim()) {
     const radius = filter.radiusKm ?? 10;
     const { latDelta, lngDelta } = box(filter.lat, filter.lng, radius);
     conditions.push(sql`${academies.lat} is not null`);
@@ -119,7 +142,7 @@ export async function searchAcademies(filter: PlaceFilter): Promise<AcademyResul
     .leftJoin(states, eq(cities.stateId, states.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(filter.lat != null ? distance : asc(academies.name))
-    .limit(50);
+    .limit(80);
 
   const ids = rows.map((row) => row.id);
   const schedules = ids.length
@@ -134,15 +157,39 @@ export async function searchAcademies(filter: PlaceFilter): Promise<AcademyResul
         .where(inArray(classSchedules.academyId, ids))
     : [];
 
-  return rows.map((row) => ({
-    ...row,
-    lat: toNumber(row.lat),
-    lng: toNumber(row.lng),
-    distanceKm: row.distanceKm == null ? null : Number(row.distanceKm),
-    nextClass: nextClassLabel(
-      schedules.filter((schedule) => schedule.academyId === row.id),
-    ),
-  }));
+  const today = saoPauloWeekday();
+  const kinds = filter.classKinds?.filter(Boolean) ?? [];
+
+  return rows
+    .map((row) => {
+      const academySchedules = schedules.filter(
+        (schedule) => schedule.academyId === row.id,
+      );
+      return {
+        ...row,
+        lat: toNumber(row.lat),
+        lng: toNumber(row.lng),
+        distanceKm: row.distanceKm == null ? null : Number(row.distanceKm),
+        nextClass: nextClassLabel(academySchedules),
+        verified: false,
+        _schedules: academySchedules,
+      };
+    })
+    .filter((row) => {
+      if (filter.lat != null && filter.lng != null && !filter.q?.trim()) {
+        const radius = filter.radiusKm ?? 10;
+        if (row.distanceKm != null && row.distanceKm > radius) return false;
+      }
+      if (filter.todayOnly) {
+        if (!row._schedules.some((item) => item.weekday === today)) return false;
+      }
+      if (kinds.length) {
+        if (!row._schedules.some((item) => kinds.includes(item.kind))) return false;
+      }
+      return true;
+    })
+    .map(({ _schedules: _, ...row }) => row)
+    .slice(0, 50);
 }
 
 export async function searchStores(
@@ -161,7 +208,13 @@ export async function searchStores(
   if (filter.categorySlug) {
     conditions.push(eq(businessCategories.slug, filter.categorySlug));
   }
-  if (filter.lat != null && filter.lng != null) {
+  if (filter.q?.trim()) {
+    const needle = `%${filter.q.trim()}%`;
+    conditions.push(
+      or(ilike(businesses.name, needle), ilike(cities.name, needle))!,
+    );
+  }
+  if (filter.lat != null && filter.lng != null && !filter.q?.trim()) {
     const radius = filter.radiusKm ?? 10;
     const { latDelta, lngDelta } = box(filter.lat, filter.lng, radius);
     conditions.push(sql`${businesses.lat} is not null`);
@@ -247,8 +300,36 @@ export async function listAcademyMapPins(): Promise<AcademyMapPin[]> {
       lng: toNumber(row.lng),
       detail: [row.professorName, row.city].filter(Boolean).join(" · ") || "Academia",
     }))
-    .filter(
-      (row): row is AcademyMapPin =>
-        row.lat != null && row.lng != null,
-    );
+    .filter((row): row is AcademyMapPin => row.lat != null && row.lng != null);
+}
+
+/** Centro aproximado da cidade do usuário (média das academias na cidade). */
+export async function getCityCenter(cityId: string) {
+  const db = getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select({
+      cityId: cities.id,
+      cityName: cities.name,
+      lat: sql<number>`avg(${academies.lat}::float8)`,
+      lng: sql<number>`avg(${academies.lng}::float8)`,
+    })
+    .from(cities)
+    .leftJoin(
+      academies,
+      and(eq(academies.cityId, cities.id), isNull(academies.blockedAt)),
+    )
+    .where(eq(cities.id, cityId))
+    .groupBy(cities.id, cities.name)
+    .limit(1);
+
+  if (!row) return null;
+  const lat = Number(row.lat);
+  const lng = Number(row.lng);
+  return {
+    cityId: row.cityId,
+    cityName: row.cityName,
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
+  };
 }

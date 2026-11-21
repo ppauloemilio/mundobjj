@@ -12,12 +12,17 @@ export async function GET(request: Request) {
   await connection();
   const url = new URL(request.url);
   const layer = url.searchParams.get("layer") === "stores" ? "stores" : "academies";
+  const kinds = url.searchParams.getAll("kind").filter(Boolean);
   const filter = {
     cityId: url.searchParams.get("cityId") || undefined,
     lat: numberParam(url.searchParams.get("lat")),
     lng: numberParam(url.searchParams.get("lng")),
     radiusKm: numberParam(url.searchParams.get("radius")) ?? 10,
     categorySlug: url.searchParams.get("category") || undefined,
+    q: url.searchParams.get("q") || undefined,
+    acceptsVisitor: url.searchParams.get("visitor") === "1",
+    classKinds: kinds.length ? kinds : undefined,
+    todayOnly: url.searchParams.get("today") === "1",
   };
 
   const configured = Boolean(process.env.DATABASE_URL);

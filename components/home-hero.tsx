@@ -6,23 +6,15 @@ export function HomeHero() {
   const { t } = useLocale();
 
   return (
-    <section className="relative overflow-hidden border-b border-[var(--line)] bg-[var(--ink)] text-[var(--paper)]">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-70"
-        style={{
-          background:
-            "radial-gradient(700px 280px at 15% 20%, rgba(180,35,46,0.35), transparent 60%), radial-gradient(500px 240px at 85% 10%, rgba(255,255,255,0.08), transparent 55%)",
-        }}
-      />
-      <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-8 sm:px-6 sm:py-10">
-        <p className="text-[11px] font-semibold tracking-[0.2em] text-white/55 uppercase">
+    <section className="border-b border-[var(--line)] bg-[var(--hero)] text-[#f1f0f4]">
+      <div className="mx-auto flex max-h-[120px] w-full max-w-5xl flex-col justify-center gap-1 px-4 py-4 sm:px-6">
+        <p className="text-[10px] font-semibold tracking-[0.18em] text-white/50 uppercase">
           {t("homeEyebrow")}
         </p>
-        <h1 className="font-display max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="font-display text-[22px] leading-tight font-semibold tracking-tight sm:text-2xl">
           {t("homeTitle")}
         </h1>
-        <p className="max-w-lg text-sm leading-6 text-white/75 sm:text-[15px] sm:leading-7">
+        <p className="line-clamp-1 text-[12px] text-white/70 sm:text-[13px]">
           {t("homeSubtitle")}
         </p>
       </div>

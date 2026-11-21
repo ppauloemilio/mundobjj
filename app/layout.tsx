@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Manrope, Sora } from "next/font/google";
 import { Suspense, type ReactNode } from "react";
+import { AppShell } from "@/components/app-shell";
 import { LocaleProvider } from "@/components/locale-provider";
-import { SiteHeader } from "@/components/site-header";
+import { ThemeScript } from "@/components/theme-script";
 import { defaultLocale, localeTag } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import "./globals.css";
@@ -32,8 +33,16 @@ function Shell({
 }) {
   return (
     <LocaleProvider locale={locale}>
-      <SiteHeader />
-      {children}
+      <Suspense
+        fallback={
+          <div className="app-shell-main">
+            <div className="site-header h-14" />
+            {children}
+          </div>
+        }
+      >
+        <AppShell>{children}</AppShell>
+      </Suspense>
     </LocaleProvider>
   );
 }
@@ -48,7 +57,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang={localeTag(defaultLocale)}
       className={`${manrope.variable} ${sora.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <ThemeScript />
+      </head>
       <body className="flex min-h-full flex-col">
         <Suspense fallback={<Shell locale={defaultLocale}>{children}</Shell>}>
           <LocaleShell>{children}</LocaleShell>

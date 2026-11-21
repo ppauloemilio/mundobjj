@@ -78,6 +78,20 @@
       "when": 1795178354174,
       "tag": "0010_shiny_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795262778854,
+      "tag": "0011_needy_killraven",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795263914952,
+      "tag": "0012_melodic_rogue",
+      "breakpoints": true
     }
   ]
 }

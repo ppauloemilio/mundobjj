@@ -5,63 +5,62 @@ import {
   changeOwnPasswordAction,
   type PasswordFormState,
 } from "@/app/actions/password";
+import { useLocale } from "@/components/locale-provider";
 
 const initial: PasswordFormState = {};
 
 export function ChangePasswordForm() {
+  const { t } = useLocale();
   const [state, action, pending] = useActionState(
     changeOwnPasswordAction,
     initial,
   );
 
   return (
-    <form
-      action={action}
-      className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] p-4"
-    >
-      <h2 className="text-lg font-semibold">Alterar senha</h2>
-      <label className="flex flex-col gap-1 text-sm">
-        Senha atual
+    <form action={action} className="ui-card flex flex-col gap-3 p-4">
+      <h2 className="text-[15px] font-semibold">{t("changePassword")}</h2>
+      <label className="flex flex-col gap-1 text-[13px]">
+        {t("currentPassword")}
         <input
           name="currentPassword"
           type="password"
           required
           autoComplete="current-password"
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+          className="ui-input"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Nova senha
+      <label className="flex flex-col gap-1 text-[13px]">
+        {t("newPassword")}
         <input
           name="newPassword"
           type="password"
           required
           autoComplete="new-password"
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+          className="ui-input"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Confirmar nova senha
+      <label className="flex flex-col gap-1 text-[13px]">
+        {t("confirmPassword")}
         <input
           name="confirmPassword"
           type="password"
           required
           autoComplete="new-password"
-          className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
+          className="ui-input"
         />
       </label>
       {state.error ? (
-        <p className="text-sm text-[var(--accent)]">{state.error}</p>
+        <p className="text-[13px] text-[var(--brand)]">{state.error}</p>
       ) : null}
       {state.success ? (
-        <p className="text-sm text-green-700">{state.success}</p>
+        <p className="text-[13px] text-green-700">{state.success}</p>
       ) : null}
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 w-fit rounded-full border border-[var(--line)] px-4 text-sm font-medium disabled:opacity-60"
+        className="ui-btn min-h-11 w-fit border border-[var(--line)] disabled:opacity-60"
       >
-        {pending ? "Salvando..." : "Atualizar senha"}
+        {pending ? t("saving") : t("updatePassword")}
       </button>
     </form>
   );

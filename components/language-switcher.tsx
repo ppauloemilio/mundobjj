@@ -8,8 +8,8 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
 
   return (
     <div
-      className={`inline-flex items-center rounded-lg border border-[var(--line)] bg-white/80 p-0.5 backdrop-blur ${
-        compact ? "" : "shadow-[0_1px_2px_rgba(15,20,25,0.04)]"
+      className={`inline-flex items-center rounded-lg border border-[var(--line)] bg-[var(--card)] p-0.5 ${
+        compact ? "" : "w-full justify-center shadow-[var(--shadow)]"
       }`}
       role="group"
       aria-label={t("langLabel")}
@@ -22,10 +22,10 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
             type="button"
             disabled={pending}
             onClick={() => setLocale(code)}
-            className={`min-h-7 rounded-md px-2.5 text-[11px] font-semibold tracking-wide transition ${
+            className={`min-h-11 rounded-md px-3 text-[12px] font-semibold tracking-wide transition ${
               active
-                ? "bg-[var(--ink)] text-white"
-                : "text-[var(--muted)] hover:text-[var(--ink)]"
+                ? "bg-[var(--ink)] text-[var(--bg)]"
+                : "text-[var(--mute)] hover:text-[var(--ink)]"
             } disabled:opacity-60`}
           >
             {code === "pt" ? t("langPt") : t("langEn")}

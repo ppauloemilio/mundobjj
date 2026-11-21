@@ -1,22 +1,21 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+import { listCompetitionsForProfile } from "@/app/actions/competitions";
+import { PublicAthleteProfile } from "@/components/public-athlete-profile";
 import { requireDb } from "@/db";
-import { academies, cities, memberships, profiles, states } from "@/db/schema";
+import {
+  academies,
+  athleteProfessors,
+  cities,
+  memberships,
+  profiles,
+  states,
+} from "@/db/schema";
+
+const professorProfiles = alias(profiles, "professor_profiles");
 
 export const instant = false;
-
-const beltLabel: Record<string, string> = {
-  white: "Branca",
-  blue: "Azul",
-  purple: "Roxa",
-  brown: "Marrom",
-  black: "Preta",
-  gray: "Cinza",
-  yellow: "Amarela",
-  orange: "Laranja",
-  green: "Verde",
-};
 
 export default async function AtletaPage({
   params,
@@ -41,10 +40,12 @@ export default async function AtletaPage({
 
   const { profile } = row;
   const place = [row.city, row.state].filter(Boolean).join(", ");
+
   const [membership] = await db
     .select({
       academyName: academies.name,
       academySlug: academies.slug,
+      academyId: academies.id,
     })
     .from(memberships)
     .innerJoin(academies, eq(memberships.academyId, academies.id))
@@ -56,35 +57,53 @@ export default async function AtletaPage({
     )
     .limit(1);
 
+  const [professor] = membership
+    ? await db
+        .select({ name: professorProfiles.name })
+        .from(athleteProfessors)
+        .innerJoin(
+          professorProfiles,
+          eq(athleteProfessors.professorProfileId, professorProfiles.id),
+        )
+        .where(
+          and(
+            eq(athleteProfessors.profileId, profile.id),
+            eq(athleteProfessors.academyId, membership.academyId),
+            eq(athleteProfessors.status, "active"),
+          ),
+        )
+        .limit(1)
+    : [undefined];
+
+  const competitions = profile.competitor
+    ? await listCompetitionsForProfile(profile.id, { includeHidden: false })
+    : [];
+
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-10 sm:px-6">
-      <p className="text-sm uppercase tracking-[0.18em] text-[var(--muted)]">
-        Atleta
-      </p>
-      <h1 className="text-4xl font-semibold tracking-tight">{profile.name}</h1>
-      <p className="text-[var(--muted)]">
-        {[beltLabel[profile.belt] ?? profile.belt, `${profile.stripes} graus`, place]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-      {membership ? (
-        <p className="text-sm">
-          Academia:{" "}
-          <Link href={`/academia/${membership.academySlug}`} className="underline">
-            {membership.academyName}
-          </Link>
-        </p>
-      ) : null}
-      {profile.bio ? <p className="leading-7">{profile.bio}</p> : null}
-      {profile.competitor ? (
-        <p className="text-sm font-medium">Competidor</p>
-      ) : null}
-      {profile.showWhatsapp && profile.whatsapp ? (
-        <p className="text-sm">WhatsApp: {profile.whatsapp}</p>
-      ) : null}
-      {profile.showEmail && profile.contactEmail ? (
-        <p className="text-sm">E-mail: {profile.contactEmail}</p>
-      ) : null}
-    </main>
+    <PublicAthleteProfile
+      profile={{
+        name: profile.name,
+        slug: profile.slug,
+        belt: profile.belt,
+        stripes: profile.stripes,
+        bio: profile.bio,
+        avatarUrl: profile.avatarUrl,
+        weightCategory: profile.weightCategory,
+        startedAt: profile.startedAt,
+        whatsapp: profile.whatsapp,
+        contactEmail: profile.contactEmail,
+        showWhatsapp: profile.showWhatsapp,
+        showEmail: profile.showEmail,
+        competitor: profile.competitor,
+      }}
+      place={place}
+      academy={
+        membership
+          ? { name: membership.academyName, slug: membership.academySlug }
+          : null
+      }
+      professorName={professor?.name ?? null}
+      competitions={competitions}
+    />
   );
 }
