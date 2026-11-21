@@ -99,7 +99,10 @@ export async function searchAcademies(filter: PlaceFilter): Promise<AcademyResul
       ? distanceSql(filter.lat, filter.lng, academies.lat, academies.lng)
       : sql<number | null>`null`;
 
-  const conditions = [isNull(academies.blockedAt)];
+  const conditions = [
+    isNull(academies.blockedAt),
+    isNull(academies.suspendedAt),
+  ];
   if (filter.cityId) conditions.push(eq(academies.cityId, filter.cityId));
   if (filter.acceptsVisitor) conditions.push(eq(academies.acceptsVisitor, true));
   if (filter.q?.trim()) {
@@ -203,7 +206,11 @@ export async function searchStores(
       ? distanceSql(filter.lat, filter.lng, businesses.lat, businesses.lng)
       : sql<number | null>`null`;
 
-  const conditions = [eq(businesses.sponsored, true)];
+  const conditions = [
+    eq(businesses.sponsored, true),
+    isNull(businesses.blockedAt),
+    isNull(businesses.suspendedAt),
+  ];
   if (filter.cityId) conditions.push(eq(businesses.cityId, filter.cityId));
   if (filter.categorySlug) {
     conditions.push(eq(businessCategories.slug, filter.categorySlug));
@@ -284,6 +291,7 @@ export async function listAcademyMapPins(): Promise<AcademyMapPin[]> {
     .where(
       and(
         isNull(academies.blockedAt),
+        isNull(academies.suspendedAt),
         sql`${academies.lat} is not null`,
         sql`${academies.lng} is not null`,
       ),
@@ -317,7 +325,11 @@ export async function getCityCenter(cityId: string) {
     .from(cities)
     .leftJoin(
       academies,
-      and(eq(academies.cityId, cities.id), isNull(academies.blockedAt)),
+      and(
+        eq(academies.cityId, cities.id),
+        isNull(academies.blockedAt),
+        isNull(academies.suspendedAt),
+      ),
     )
     .where(eq(cities.id, cityId))
     .groupBy(cities.id, cities.name)

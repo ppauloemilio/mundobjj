@@ -36,7 +36,7 @@ export default async function AcademiaPage({
     .where(eq(academies.slug, slug))
     .limit(1);
 
-  if (!row || row.academy.blockedAt) notFound();
+  if (!row || row.academy.blockedAt || row.academy.suspendedAt) notFound();
 
   const schedules = await db
     .select()

@@ -17,6 +17,7 @@ export default async function AdminUsuariosPage() {
       role: users.role,
       accountType: users.accountType,
       blockedAt: users.blockedAt,
+      suspendedAt: users.suspendedAt,
       profileWhatsapp: profiles.whatsapp,
     })
     .from(users)
@@ -53,6 +54,7 @@ export default async function AdminUsuariosPage() {
             role: user.role,
             accountType: user.accountType,
             blockedAt: user.blockedAt,
+            suspendedAt: user.suspendedAt,
             whatsapp:
               user.profileWhatsapp || academyWhatsapp.get(user.id) || null,
           }}

@@ -6,12 +6,14 @@ import {
   type AccessFormState,
 } from "@/app/actions/academy-access";
 import {
-  toggleAcademyBlockAction,
+  setAcademyModerationAction,
   updateAcademyAdminAction,
   type AdminFormState,
 } from "@/app/actions/admin";
 import { AddressFields } from "@/components/address-fields";
+import { AdminModerationButtons } from "@/components/admin-moderation-buttons";
 import { ResponsibleProfessorSelect } from "@/components/responsible-professor-select";
+import { moderationLabel, moderationStatus } from "@/lib/moderation";
 
 const initial: AdminFormState = {};
 const accessInitial: AccessFormState = {};
@@ -33,6 +35,7 @@ type AcademyRow = {
   cityName?: string | null;
   acceptsVisitor: boolean;
   blockedAt: Date | null;
+  suspendedAt: Date | null;
   ownerId: string | null;
 };
 
@@ -52,8 +55,18 @@ export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
     }
   }, [accessState.whatsappUrl, accessState.temporaryPassword]);
 
+  const status = moderationStatus(academy);
+
   return (
     <article className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="rounded-full border border-[var(--line)] px-2 py-1 text-[11px] font-semibold">
+          {moderationLabel(status)}
+        </span>
+        <a href={`/academia/${academy.slug}`} className="text-sm underline">
+          Ver página pública
+        </a>
+      </div>
       <form action={action} className="grid gap-3 sm:grid-cols-2">
         <input type="hidden" name="academyId" value={academy.id} />
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
@@ -116,28 +129,15 @@ export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
         <p className="mt-2 text-sm text-green-700">{state.success}</p>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <a href={`/academia/${academy.slug}`} className="text-sm underline">
-          Ver página pública
-        </a>
-        <form action={toggleAcademyBlockAction}>
-          <input type="hidden" name="academyId" value={academy.id} />
-          <input
-            type="hidden"
-            name="block"
-            value={academy.blockedAt ? "0" : "1"}
-          />
-          <button
-            type="submit"
-            className="min-h-11 rounded-full border border-[var(--line)] px-4 text-sm"
-          >
-            {academy.blockedAt ? "Desbloquear" : "Bloquear na busca"}
-          </button>
-        </form>
+      <div className="mt-4">
+        <AdminModerationButtons
+          entityId={academy.id}
+          idField="academyId"
+          blockedAt={academy.blockedAt}
+          suspendedAt={academy.suspendedAt}
+          action={setAcademyModerationAction}
+        />
       </div>
-      {academy.blockedAt ? (
-        <p className="mt-2 text-sm text-[var(--accent)]">Bloqueada na busca</p>
-      ) : null}
 
       {!academy.ownerId ? (
         <div className="mt-4 grid gap-3 rounded-xl border border-[var(--line)] p-3">

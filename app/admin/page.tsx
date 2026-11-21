@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { count, eq, isNotNull } from "drizzle-orm";
+import { count, eq, isNotNull, or } from "drizzle-orm";
 import { requireDb } from "@/db";
 import {
   academies,
   academyAccessRequests,
   academySuggestions,
+  businesses,
   locationSuggestions,
   professorSuggestions,
   users,
@@ -19,21 +20,38 @@ export default async function AdminPage() {
 
   const [
     [usersCount],
-    [blockedUsers],
+    [restrictedUsers],
     [academiesCount],
-    [blockedAcademies],
+    [restrictedAcademies],
+    [businessesCount],
+    [restrictedBusinesses],
     [pendingLocations],
     [pendingAcademies],
     [pendingProfessors],
     [pendingAccess],
   ] = await Promise.all([
     db.select({ value: count() }).from(users),
-    db.select({ value: count() }).from(users).where(isNotNull(users.blockedAt)),
+    db
+      .select({ value: count() })
+      .from(users)
+      .where(or(isNotNull(users.blockedAt), isNotNull(users.suspendedAt))),
     db.select({ value: count() }).from(academies),
     db
       .select({ value: count() })
       .from(academies)
-      .where(isNotNull(academies.blockedAt)),
+      .where(
+        or(isNotNull(academies.blockedAt), isNotNull(academies.suspendedAt)),
+      ),
+    db.select({ value: count() }).from(businesses),
+    db
+      .select({ value: count() })
+      .from(businesses)
+      .where(
+        or(
+          isNotNull(businesses.blockedAt),
+          isNotNull(businesses.suspendedAt),
+        ),
+      ),
     db
       .select({ value: count() })
       .from(locationSuggestions)
@@ -57,13 +75,19 @@ export default async function AdminPage() {
       label: "Contas",
       value: usersCount.value,
       href: "/admin/usuarios",
-      detail: `${blockedUsers.value} bloqueadas · login de praticantes e academias`,
+      detail: `${restrictedUsers.value} suspensas/bloqueadas`,
     },
     {
-      label: "Academias cadastradas",
+      label: "Academias",
       value: academiesCount.value,
       href: "/admin/academias",
-      detail: `${academiesCount.value - blockedAcademies.value} na busca · ${pendingAccess.value} pedindo acesso`,
+      detail: `${restrictedAcademies.value} fora da busca · ${pendingAcademies.value} sugeridas · ${pendingAccess.value} pedindo acesso`,
+    },
+    {
+      label: "Lojas",
+      value: businessesCount.value,
+      href: "/admin/lojas",
+      detail: `${restrictedBusinesses.value} suspensas/bloqueadas`,
     },
     {
       label: "Sugestões pendentes",
@@ -77,7 +101,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <section className="grid gap-3 sm:grid-cols-3">
+    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
         <Link
           key={card.label}

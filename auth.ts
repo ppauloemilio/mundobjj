@@ -36,7 +36,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .where(eq(users.email, email))
           .limit(1);
 
-        if (!user?.passwordHash || user.blockedAt) return null;
+        if (!user?.passwordHash || user.blockedAt || user.suspendedAt) {
+          return null;
+        }
 
         const valid = await compare(parsed.data.password, user.passwordHash);
         if (!valid) return null;

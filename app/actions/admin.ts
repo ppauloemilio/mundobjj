@@ -5,7 +5,13 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireDb } from "@/db";
-import { academies, profiles, users } from "@/db/schema";
+import {
+  academies,
+  businessCategories,
+  businesses,
+  profiles,
+  users,
+} from "@/db/schema";
 import { geocodeAddress } from "@/lib/geocode";
 import {
   composeStreetAddress,
@@ -13,6 +19,10 @@ import {
   readLocationFromForm,
   resolveLocationToCityId,
 } from "@/lib/location-input";
+import {
+  moderationPatch,
+  type ModerationStatus,
+} from "@/lib/moderation";
 import {
   readProfessorFromForm,
   resolveResponsibleProfessor,
@@ -196,9 +206,26 @@ export async function toggleUserBlockAction(formData: FormData) {
   const db = requireDb();
   await db
     .update(users)
-    .set({ blockedAt: block ? new Date() : null })
+    .set(
+      block
+        ? moderationPatch("blocked")
+        : moderationPatch("active"),
+    )
     .where(eq(users.id, userId));
 
+  revalidatePath("/admin");
+  revalidatePath("/admin/usuarios");
+}
+
+export async function setUserModerationAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const userId = String(formData.get("userId") || "");
+  const status = String(formData.get("status") || "") as ModerationStatus;
+  if (!userId || !["active", "suspended", "blocked"].includes(status)) return;
+  if (userId === admin.id) return;
+
+  const db = requireDb();
+  await db.update(users).set(moderationPatch(status)).where(eq(users.id, userId));
   revalidatePath("/admin");
   revalidatePath("/admin/usuarios");
 }
@@ -470,10 +497,148 @@ export async function toggleAcademyBlockAction(formData: FormData) {
   const db = requireDb();
   await db
     .update(academies)
-    .set({ blockedAt: block ? new Date() : null })
+    .set(block ? moderationPatch("blocked") : moderationPatch("active"))
     .where(eq(academies.id, academyId));
 
   revalidatePath("/admin");
   revalidatePath("/admin/academias");
+  revalidatePath("/");
+}
+
+export async function setAcademyModerationAction(formData: FormData) {
+  await requireAdmin();
+  const academyId = String(formData.get("academyId") || "");
+  const status = String(formData.get("status") || "") as ModerationStatus;
+  if (!academyId || !["active", "suspended", "blocked"].includes(status)) return;
+
+  const db = requireDb();
+  await db
+    .update(academies)
+    .set(moderationPatch(status))
+    .where(eq(academies.id, academyId));
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/academias");
+  revalidatePath("/");
+}
+
+export async function updateBusinessAdminAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  const admin = await requireAdmin();
+  const parsed = z
+    .object({
+      businessId: z.string().uuid(),
+      name: z.string().trim().min(2),
+      categoryId: z.string().uuid(),
+      whatsapp: z.string().trim().optional(),
+      link: z.string().trim().optional(),
+      address: z.string().trim().optional(),
+      sponsored: z.coerce.boolean().optional(),
+    })
+    .safeParse({
+      businessId: formData.get("businessId"),
+      name: formData.get("name"),
+      categoryId: formData.get("categoryId"),
+      whatsapp: formData.get("whatsapp") || "",
+      link: formData.get("link") || "",
+      address: formData.get("address") || "",
+      sponsored: formData.get("sponsored") === "on",
+    });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const location = readLocationFromForm(formData);
+  const cityId = await resolveLocationToCityId(location, admin.id);
+  const db = requireDb();
+  await db
+    .update(businesses)
+    .set({
+      name: parsed.data.name,
+      categoryId: parsed.data.categoryId,
+      whatsapp: parsed.data.whatsapp || null,
+      link: parsed.data.link || null,
+      address: parsed.data.address || null,
+      sponsored: Boolean(parsed.data.sponsored),
+      ...(cityId ? { cityId } : {}),
+    })
+    .where(eq(businesses.id, parsed.data.businessId));
+
+  revalidatePath("/admin/lojas");
+  revalidatePath("/");
+  return { success: "Loja atualizada." };
+}
+
+export async function createBusinessAdminAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  const admin = await requireAdmin();
+  const parsed = z
+    .object({
+      name: z.string().trim().min(2),
+      categoryId: z.string().uuid(),
+      whatsapp: z.string().trim().optional(),
+      link: z.string().trim().optional(),
+      address: z.string().trim().optional(),
+      sponsored: z.coerce.boolean().optional(),
+    })
+    .safeParse({
+      name: formData.get("name"),
+      categoryId: formData.get("categoryId"),
+      whatsapp: formData.get("whatsapp") || "",
+      link: formData.get("link") || "",
+      address: formData.get("address") || "",
+      sponsored: formData.get("sponsored") === "on",
+    });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const db = requireDb();
+  const [category] = await db
+    .select({ id: businessCategories.id })
+    .from(businessCategories)
+    .where(eq(businessCategories.id, parsed.data.categoryId))
+    .limit(1);
+  if (!category) return { error: "Categoria inválida." };
+
+  const location = readLocationFromForm(formData);
+  const cityId = await resolveLocationToCityId(location, admin.id);
+
+  await db.insert(businesses).values({
+    slug: uniqueSlug(parsed.data.name),
+    name: parsed.data.name,
+    categoryId: parsed.data.categoryId,
+    whatsapp: parsed.data.whatsapp || null,
+    link: parsed.data.link || null,
+    address: parsed.data.address || null,
+    sponsored: parsed.data.sponsored !== false,
+    ...(cityId ? { cityId } : {}),
+  });
+
+  revalidatePath("/admin/lojas");
+  revalidatePath("/");
+  return { success: "Loja cadastrada." };
+}
+
+export async function setBusinessModerationAction(formData: FormData) {
+  await requireAdmin();
+  const businessId = String(formData.get("businessId") || "");
+  const status = String(formData.get("status") || "") as ModerationStatus;
+  if (!businessId || !["active", "suspended", "blocked"].includes(status)) return;
+
+  const db = requireDb();
+  await db
+    .update(businesses)
+    .set(moderationPatch(status))
+    .where(eq(businesses.id, businessId));
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/lojas");
   revalidatePath("/");
 }

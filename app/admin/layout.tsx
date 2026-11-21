@@ -13,17 +13,22 @@ const nav = [
   {
     href: "/admin/usuarios",
     title: "Usuários",
-    hint: "Contas e senhas",
+    hint: "Editar, suspender, bloquear",
   },
   {
     href: "/admin/academias",
     title: "Academias",
-    hint: "Cadastro e acesso",
+    hint: "Sugeridas, cadastradas e acesso",
+  },
+  {
+    href: "/admin/lojas",
+    title: "Lojas",
+    hint: "Cadastro e moderação",
   },
   {
     href: "/admin/sugestoes",
     title: "Sugestões",
-    hint: "Pendências de revisão",
+    hint: "Locais, academias, professores",
   },
 ];
 
@@ -40,7 +45,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           Admin
         </h1>
       </div>
-      <nav className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      <nav className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {nav.map((item) => (
           <Link
             key={item.href}

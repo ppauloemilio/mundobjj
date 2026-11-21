@@ -3,11 +3,13 @@
 import { useActionState, useEffect } from "react";
 import {
   resetUserPasswordWhatsAppAction,
+  setUserModerationAction,
   setUserPasswordAction,
-  toggleUserBlockAction,
   updateUserAction,
   type AdminFormState,
 } from "@/app/actions/admin";
+import { AdminModerationButtons } from "@/components/admin-moderation-buttons";
+import { moderationLabel, moderationStatus } from "@/lib/moderation";
 
 const initial: AdminFormState = {};
 
@@ -18,6 +20,7 @@ type UserRow = {
   role: "user" | "admin";
   accountType: "athlete" | "academy" | "professor" | "admin";
   blockedAt: Date | null;
+  suspendedAt: Date | null;
   whatsapp: string | null;
 };
 
@@ -59,6 +62,9 @@ export function AdminUserCard({
       <div className="mb-3 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
         <span className="rounded-full border border-[var(--line)] px-2 py-1">
           {accountLabel[user.accountType]}
+        </span>
+        <span className="rounded-full border border-[var(--line)] px-2 py-1">
+          {moderationLabel(moderationStatus(user))}
         </span>
         {user.whatsapp ? (
           <span className="rounded-full border border-[var(--line)] px-2 py-1">
@@ -182,24 +188,21 @@ export function AdminUserCard({
         ) : null}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {user.id !== currentAdminId ? (
-          <form action={toggleUserBlockAction}>
-            <input type="hidden" name="userId" value={user.id} />
-            <input type="hidden" name="block" value={user.blockedAt ? "0" : "1"} />
-            <button
-              type="submit"
-              className="min-h-11 rounded-full border border-[var(--line)] px-4 text-sm"
-            >
-              {user.blockedAt ? "Desbloquear" : "Bloquear"}
-            </button>
-          </form>
-        ) : null}
-      </div>
-
-      {user.blockedAt ? (
-        <p className="mt-2 text-sm text-[var(--accent)]">Usuário bloqueado</p>
-      ) : null}
+      {user.id !== currentAdminId ? (
+        <div className="mt-4">
+          <AdminModerationButtons
+            entityId={user.id}
+            idField="userId"
+            blockedAt={user.blockedAt}
+            suspendedAt={user.suspendedAt}
+            action={setUserModerationAction}
+          />
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-[var(--muted)]">
+          Você não pode suspender ou bloquear a própria conta admin.
+        </p>
+      )}
     </article>
   );
 }

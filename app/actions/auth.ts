@@ -294,13 +294,14 @@ export async function loginAction(
       role: users.role,
       accountType: users.accountType,
       blockedAt: users.blockedAt,
+      suspendedAt: users.suspendedAt,
       passwordHash: users.passwordHash,
     })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
 
-  if (!user?.passwordHash || user.blockedAt) {
+  if (!user?.passwordHash || user.blockedAt || user.suspendedAt) {
     return { error: "E-mail ou senha incorretos." };
   }
 

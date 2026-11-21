@@ -134,6 +134,7 @@ export const users = pgTable("user", {
   role: userRoleEnum("role").notNull().default("user"),
   accountType: accountTypeEnum("account_type").notNull().default("athlete"),
   blockedAt: timestamp("blocked_at", { mode: "date" }),
+  suspendedAt: timestamp("suspended_at", { mode: "date" }),
 });
 
 export const accounts = pgTable(
@@ -270,6 +271,7 @@ export const academies = pgTable(
     claimToken: text("claim_token").unique(),
     claimedAt: timestamp("claimed_at", { mode: "date" }),
     blockedAt: timestamp("blocked_at", { mode: "date" }),
+    suspendedAt: timestamp("suspended_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
@@ -392,6 +394,8 @@ export const businesses = pgTable(
     sponsored: boolean("sponsored").notNull().default(true),
     startsAt: date("starts_at"),
     endsAt: date("ends_at"),
+    blockedAt: timestamp("blocked_at", { mode: "date" }),
+    suspendedAt: timestamp("suspended_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
@@ -448,6 +452,9 @@ export const academySuggestions = pgTable("academy_suggestions", {
   contact: text("contact"),
   notes: text("notes"),
   suggestedByUserId: text("suggested_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  academyId: uuid("academy_id").references(() => academies.id, {
     onDelete: "set null",
   }),
   status: suggestionStatusEnum("status").notNull().default("pending"),

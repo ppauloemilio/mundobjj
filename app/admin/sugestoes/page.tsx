@@ -1,12 +1,11 @@
 import { desc, eq } from "drizzle-orm";
 import {
-  approveAcademySuggestionAction,
   approveLocationSuggestionAction,
   approveProfessorSuggestionAction,
-  rejectAcademySuggestionAction,
   rejectLocationSuggestionAction,
   rejectProfessorSuggestionAction,
 } from "@/app/actions/suggestions";
+import { AdminAcademySuggestionCard } from "@/components/admin-academy-suggestion-card";
 import { requireDb } from "@/db";
 import {
   academySuggestions,
@@ -21,7 +20,7 @@ export default async function AdminSugestoesPage() {
   await requireAdmin();
   const db = requireDb();
 
-  const [locations, academies, professors] = await Promise.all([
+  const [locations, academiesPending, professors] = await Promise.all([
     db
       .select()
       .from(locationSuggestions)
@@ -92,43 +91,26 @@ export default async function AdminSugestoesPage() {
       <div className="flex flex-col gap-3">
         <h2 className="text-xl font-semibold">Academias sugeridas</h2>
         <p className="text-sm text-[var(--muted)]">
-          Alunos que não acharam a academia na lista. Use para contatar e
-          oferecer o cadastro.
+          Aceitar cria a academia cadastrada. Também disponível em{" "}
+          <a href="/admin/academias" className="underline">
+            Academias
+          </a>
+          .
         </p>
-        {academies.length === 0 ? (
+        {academiesPending.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">Nenhuma sugestão pendente.</p>
         ) : (
-          academies.map((item) => (
-            <article
+          academiesPending.map((item) => (
+            <AdminAcademySuggestionCard
               key={item.id}
-              className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4"
-            >
-              <p className="font-medium">{item.name}</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                {[item.cityText, item.contact].filter(Boolean).join(" · ") ||
-                  "Sem contato extra"}
-              </p>
-              <div className="mt-3 flex gap-2">
-                <form action={approveAcademySuggestionAction}>
-                  <input type="hidden" name="id" value={item.id} />
-                  <button
-                    type="submit"
-                    className="min-h-11 rounded-full bg-[var(--ink)] px-4 text-sm font-semibold text-white"
-                  >
-                    Marcar como tratada
-                  </button>
-                </form>
-                <form action={rejectAcademySuggestionAction}>
-                  <input type="hidden" name="id" value={item.id} />
-                  <button
-                    type="submit"
-                    className="min-h-11 rounded-full border border-[var(--line)] px-4 text-sm"
-                  >
-                    Recusar
-                  </button>
-                </form>
-              </div>
-            </article>
+              suggestion={{
+                id: item.id,
+                name: item.name,
+                cityText: item.cityText,
+                contact: item.contact,
+                notes: item.notes,
+              }}
+            />
           ))
         )}
       </div>
