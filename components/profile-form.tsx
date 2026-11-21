@@ -9,6 +9,7 @@ import {
   type ProfileFormState,
 } from "@/app/actions/profile";
 import { AcademySelect } from "@/components/academy-select";
+import { BeltRankVisual } from "@/components/belt-rank-visual";
 import { LocationFields } from "@/components/location-fields";
 import { useLocale } from "@/components/locale-provider";
 import { ProfessorSelect } from "@/components/professor-select";
@@ -223,31 +224,39 @@ export function ProfileForm({
           onToggle={() => setOpen((s) => ({ ...s, dados: !s.dados }))}
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <label className="flex w-full flex-col items-center gap-2 sm:w-auto">
-              <span className="text-[13px]">{t("profilePhoto")}</span>
-              <span className="relative inline-flex h-20 w-20 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--brand-soft)]">
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center text-sm font-bold text-[var(--brand)]">
-                    {name.slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                className="text-[12px]"
-                onChange={(event) =>
-                  void onAvatarChange(event.target.files?.[0] ?? null)
-                }
+            <div className="flex w-full flex-col items-center gap-2 sm:w-auto">
+              <label className="flex w-full flex-col items-center gap-2">
+                <span className="text-[13px]">{t("profilePhoto")}</span>
+                <span className="relative inline-flex h-20 w-20 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--brand-soft)]">
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-sm font-bold text-[var(--brand)]">
+                      {name.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="text-[12px]"
+                  onChange={(event) =>
+                    void onAvatarChange(event.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+              <BeltRankVisual
+                belt={belt}
+                stripes={stripes}
+                size="md"
+                label={t(`belt_${belt}` as "belt_white")}
               />
-            </label>
+            </div>
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <label className="flex flex-col gap-1 text-[13px]">
                 {t("name")}

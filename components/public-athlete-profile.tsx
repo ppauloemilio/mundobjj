@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BeltRankVisual } from "@/components/belt-rank-visual";
 import { CompetitionsPanel } from "@/components/competitions-panel";
 import { useLocale } from "@/components/locale-provider";
 import {
@@ -82,19 +83,27 @@ export function PublicAthleteProfile({
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--brand-soft)]">
-          {profile.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatarUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xl font-bold text-[var(--brand)]">
-              {profile.name.slice(0, 1).toUpperCase()}
-            </div>
-          )}
+        <div className="flex shrink-0 flex-col items-center gap-2">
+          <div className="h-24 w-24 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--brand-soft)]">
+            {profile.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xl font-bold text-[var(--brand)]">
+                {profile.name.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <BeltRankVisual
+            belt={profile.belt}
+            stripes={profile.stripes}
+            size="md"
+            label={t(`belt_${profile.belt}` as "belt_white")}
+          />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--mute)] uppercase">
