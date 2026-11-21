@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 export function Switch({
   name,
   checked,
@@ -17,7 +19,8 @@ export function Switch({
   description?: string;
   id?: string;
 }) {
-  const inputId = id ?? name ?? "switch";
+  const autoId = useId();
+  const inputId = id ?? (name ? `switch-${name}` : autoId);
 
   return (
     <label

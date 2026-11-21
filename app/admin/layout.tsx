@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { requireAdmin } from "@/lib/session";
 
 export const instant = false;
@@ -32,9 +32,7 @@ const nav = [
   },
 ];
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
-  await requireAdmin();
-
+function AdminChrome({ children }: { children: ReactNode }) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-8 sm:px-6">
       <div>
@@ -61,5 +59,24 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       </nav>
       {children}
     </main>
+  );
+}
+
+async function AdminGate({ children }: { children: ReactNode }) {
+  await requireAdmin();
+  return <AdminChrome>{children}</AdminChrome>;
+}
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <AdminChrome>
+          <div className="ui-card h-40 animate-pulse bg-[var(--card)]" />
+        </AdminChrome>
+      }
+    >
+      <AdminGate>{children}</AdminGate>
+    </Suspense>
   );
 }

@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { requireDb } from "@/db";
 import { academies, profiles } from "@/db/schema";
 
 export async function requireUser() {
+  // Auth.js may mint CSRF via crypto.getRandomValues — must not run in prerender.
+  await connection();
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/entrar");
