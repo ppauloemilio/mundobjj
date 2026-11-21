@@ -316,6 +316,23 @@ export function ProfileForm({
                 ) : null}
               </label>
               <label className="flex flex-col gap-1 text-[13px]">
+                {t("birthDate")}
+                <input
+                  name="birthDate"
+                  type="date"
+                  value={birthDate}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(event) => {
+                    setBirthDate(event.target.value);
+                    markDirty();
+                  }}
+                  className="ui-input"
+                />
+                <span className="text-[11px] text-[var(--mute)]">
+                  {t("birthDateHint")}
+                </span>
+              </label>
+              <label className="flex flex-col gap-1 text-[13px]">
                 {t("bio")}
                 <textarea
                   name="bio"
@@ -447,24 +464,6 @@ export function ProfileForm({
               <option value="gi">{t("styleGi")}</option>
               <option value="nogi">{t("styleNogi")}</option>
             </select>
-          </label>
-
-          <label className="flex flex-col gap-1 text-[13px]">
-            {t("birthDate")}
-            <input
-              name="birthDate"
-              type="date"
-              value={birthDate}
-              max={new Date().toISOString().slice(0, 10)}
-              onChange={(event) => {
-                setBirthDate(event.target.value);
-                markDirty();
-              }}
-              className="ui-input"
-            />
-            <span className="text-[11px] text-[var(--mute)]">
-              {t("birthDateHint")}
-            </span>
           </label>
 
           <label className="flex flex-col gap-1 text-[13px]">
