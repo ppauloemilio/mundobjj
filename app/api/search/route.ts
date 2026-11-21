@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { databaseError } from "@/lib/catalog";
+import { limitPublicApi } from "@/lib/rate-limit";
 import { searchAcademies, searchStores } from "@/lib/search";
 
 function numberParam(value: string | null) {
@@ -10,6 +11,18 @@ function numberParam(value: string | null) {
 
 export async function GET(request: Request) {
   await connection();
+
+  const limited = await limitPublicApi("search");
+  if (!limited.ok) {
+    return Response.json(
+      { error: limited.message, configured: true, results: [] },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      },
+    );
+  }
+
   const url = new URL(request.url);
   const layer = url.searchParams.get("layer") === "stores" ? "stores" : "academies";
   const kinds = url.searchParams.getAll("kind").filter(Boolean);

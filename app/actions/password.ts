@@ -16,8 +16,10 @@ export type PasswordFormState = {
 const changeSchema = z
   .object({
     currentPassword: z.string().min(6, "Informe a senha atual."),
-    newPassword: z.string().min(6, "A nova senha precisa ter ao menos 6 caracteres."),
-    confirmPassword: z.string().min(6, "Confirme a nova senha."),
+    newPassword: z
+      .string()
+      .min(8, "A nova senha precisa ter ao menos 8 caracteres."),
+    confirmPassword: z.string().min(8, "Confirme a nova senha."),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "A confirmação não confere com a nova senha.",

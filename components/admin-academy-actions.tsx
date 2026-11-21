@@ -176,7 +176,7 @@ export function AdminAcademyCard({ academy }: { academy: AcademyRow }) {
               Senha
               <input
                 name="password"
-                minLength={6}
+                minLength={8}
                 required
                 className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"
               />

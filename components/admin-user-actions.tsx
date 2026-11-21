@@ -139,7 +139,7 @@ export function AdminUserCard({
             <input
               name="password"
               type="text"
-              minLength={6}
+              minLength={8}
               required
               placeholder="Nova senha"
               className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"

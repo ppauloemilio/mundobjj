@@ -74,7 +74,7 @@ function AccessRequestCard({ request }: { request: RequestRow }) {
             Senha escolhida pelo admin
             <input
               name="password"
-              minLength={6}
+              minLength={8}
               required
               placeholder="Definir senha"
               className="min-h-11 rounded-xl border border-[var(--line)] bg-white px-3"

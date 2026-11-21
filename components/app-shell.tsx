@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import type { ReactNode } from "react";
-import { auth } from "@/auth";
+import { getShellSession } from "@/auth";
 import { BottomNav } from "@/components/bottom-nav";
 import { SiteHeader, type HeaderAuth } from "@/components/site-header";
 
@@ -12,7 +12,7 @@ function panelHrefFor(accountType?: string | null) {
 
 export async function AppShell({ children }: { children: ReactNode }) {
   await connection();
-  const session = await auth();
+  const session = await getShellSession();
   const user = session?.user;
   const authState: HeaderAuth = {
     loggedIn: Boolean(user),

@@ -238,7 +238,7 @@ export async function setUserPasswordAction(
   const userId = String(formData.get("userId") || "");
   const parsed = z
     .object({
-      password: z.string().min(6, "A senha precisa ter ao menos 6 caracteres."),
+      password: z.string().min(8, "A senha precisa ter ao menos 8 caracteres."),
     })
     .safeParse({ password: formData.get("password") });
 

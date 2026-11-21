@@ -2,19 +2,46 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { eq } from "drizzle-orm";
+import { cookies } from "next/headers";
+import { decode } from "next-auth/jwt";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { profiles, users } from "@/db/schema";
+import {
+  limitAuthorize,
+  markLoginSuccess,
+} from "@/lib/rate-limit";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
+  // min 6 keeps existing accounts; new registers require 8 in actions
   password: z.string().min(6),
 });
 
+const isProd = process.env.NODE_ENV === "production";
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
+  trustHost: true,
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
+  },
   pages: {
     signIn: "/entrar",
+  },
+  cookies: {
+    sessionToken: {
+      name: isProd
+        ? "__Secure-authjs.session-token"
+        : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProd,
+      },
+    },
   },
   providers: [
     Credentials({
@@ -22,14 +49,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "E-mail", type: "email" },
         password: { label: "Senha", type: "password" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         const parsed = credentialsSchema.safeParse(credentials);
         if (!parsed.success) return null;
+
+        const email = parsed.data.email.trim().toLowerCase();
+        const ip =
+          request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+          request?.headers?.get("x-real-ip") ||
+          "unknown";
+
+        const limited = limitAuthorize(email, ip.slice(0, 64));
+        if (!limited.ok) return null;
 
         const db = getDb();
         if (!db) return null;
 
-        const email = parsed.data.email.trim().toLowerCase();
         const [user] = await db
           .select()
           .from(users)
@@ -42,6 +77,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const valid = await compare(parsed.data.password, user.passwordHash);
         if (!valid) return null;
+
+        markLoginSuccess(email, ip.slice(0, 64));
 
         return {
           id: user.id,
@@ -78,6 +115,55 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+/**
+ * Read-only session for layout/shell — avoids Auth.js CSRF mint
+ * (crypto.getRandomValues) during Cache Components prerender.
+ */
+export async function getShellSession() {
+  const jar = await cookies();
+  const cookieName = isProd
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token";
+  const raw =
+    jar.get(cookieName)?.value ||
+    jar.get("authjs.session-token")?.value ||
+    jar.get("__Secure-authjs.session-token")?.value;
+
+  if (!raw || !process.env.AUTH_SECRET) return null;
+
+  const salts = [
+    cookieName,
+    "authjs.session-token",
+    "__Secure-authjs.session-token",
+  ];
+
+  for (const salt of salts) {
+    try {
+      const token = await decode({
+        token: raw,
+        secret: process.env.AUTH_SECRET,
+        salt,
+      });
+      if (!token?.sub) continue;
+      return {
+        user: {
+          id: String(token.sub),
+          role: (token.role as "user" | "admin") ?? "user",
+          accountType:
+            (token.accountType as
+              | "athlete"
+              | "academy"
+              | "professor"
+              | "admin") ?? "athlete",
+        },
+      };
+    } catch {
+      // try next salt
+    }
+  }
+  return null;
+}
 
 export function homePathForUser(user: {
   role?: string | null;

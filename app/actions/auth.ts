@@ -18,12 +18,20 @@ import {
   readLocationFromForm,
   resolveLocationToCityId,
 } from "@/lib/location-input";
+import {
+  clientIp,
+  limitLoginAttempt,
+  limitRegisterAttempt,
+  markLoginSuccess,
+} from "@/lib/rate-limit";
 import { uniqueSlug } from "@/lib/slug";
 
 const baseSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome."),
   email: z.string().trim().email("E-mail inválido."),
-  password: z.string().min(6, "A senha precisa ter ao menos 6 caracteres."),
+  password: z
+    .string()
+    .min(8, "A senha precisa ter ao menos 8 caracteres."),
 });
 
 const loginSchema = z.object({
@@ -44,17 +52,22 @@ async function signInWithoutSoftRedirect(
   failMessage: string,
 ): Promise<AuthFormState> {
   try {
-    await signIn("credentials", {
+    const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
+    if (result && typeof result === "object" && "error" in result && result.error) {
+      return { error: failMessage };
+    }
   } catch (error) {
     if (error instanceof AuthError) {
       return { error: failMessage };
     }
     throw error;
   }
+  const ip = await clientIp();
+  markLoginSuccess(email, ip);
   return { redirectTo };
 }
 
@@ -105,6 +118,9 @@ export async function registerAthleteAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const limited = await limitRegisterAttempt();
+  if (!limited.ok) return { error: limited.message };
+
   const parsed = baseSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -189,6 +205,9 @@ export async function registerAcademyAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const limited = await limitRegisterAttempt();
+  if (!limited.ok) return { error: limited.message };
+
   const parsed = baseSchema
     .extend({
       academyName: z.string().trim().min(2, "Informe o nome da academia."),
@@ -236,6 +255,9 @@ export async function registerProfessorAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const limited = await limitRegisterAttempt();
+  if (!limited.ok) return { error: limited.message };
+
   const parsed = baseSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -284,8 +306,8 @@ export async function loginAction(
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
-  const db = requireDb();
   const email = parsed.data.email.toLowerCase();
+  const db = requireDb();
   const [user] = await db
     .select({
       id: users.id,
@@ -300,6 +322,9 @@ export async function loginAction(
     .limit(1);
 
   if (!user?.passwordHash || user.blockedAt || user.suspendedAt) {
+    // Count failed attempt (authorize is not called on this path).
+    const limited = await limitLoginAttempt(email);
+    if (!limited.ok) return { error: limited.message };
     return { error: "E-mail ou senha incorretos." };
   }
 
