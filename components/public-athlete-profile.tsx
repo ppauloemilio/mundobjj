@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BeltRankVisual } from "@/components/belt-rank-visual";
 import { CompetitionsPanel } from "@/components/competitions-panel";
 import { useLocale } from "@/components/locale-provider";
+import { ageDivisionFromBirthDate } from "@/lib/age-category";
 import {
   bestCompetition,
   type CompetitionRow,
@@ -24,6 +25,7 @@ type Props = {
     bio: string | null;
     avatarUrl: string | null;
     weightCategory: string | null;
+    birthDate?: string | null;
     startedAt: string | null;
     whatsapp: string | null;
     contactEmail: string | null;
@@ -52,6 +54,7 @@ export function PublicAthleteProfile({
   const mats = matsTimeLabel(profile.startedAt, locale);
   const category = weightCategoryLabel(profile.weightCategory, locale);
   const highlight = bestCompetition(competitions);
+  const ageDivision = ageDivisionFromBirthDate(profile.birthDate);
   const shareUrl =
     typeof window !== "undefined"
       ? window.location.href
@@ -104,6 +107,15 @@ export function PublicAthleteProfile({
             size="md"
             label={t(`belt_${profile.belt}` as "belt_white")}
           />
+          {ageDivision ? (
+            <p className="max-w-[11rem] text-center text-[11px] leading-snug text-[var(--mute)]">
+              <span className="font-semibold text-[var(--ink)]">
+                {t(`ageDiv_${ageDivision.id}` as "ageDiv_ADULT")}
+              </span>
+              <br />
+              {t("ageCategoryYears", { age: ageDivision.chronologicalAge })}
+            </p>
+          ) : null}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--mute)] uppercase">

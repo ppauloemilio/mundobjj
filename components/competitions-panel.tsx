@@ -15,6 +15,10 @@ import { MedalPodium } from "@/components/ui/medal-podium";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import {
+  competitionAgeClassFromDivision,
+  ageDivisionFromBirthDate,
+} from "@/lib/age-category";
+import {
   competitionYears,
   filterCompetitions,
   formatEventDate,
@@ -26,6 +30,7 @@ import {
 type ProfileBits = {
   belt: string;
   weightCategory?: string | null;
+  birthDate?: string | null;
   name: string;
   cityName?: string | null;
 };
@@ -456,7 +461,12 @@ function CompetitionForm({
         {t("compAge")}
         <select
           name="ageClass"
-          defaultValue={initial?.ageClass ?? "ADULT"}
+          defaultValue={
+            initial?.ageClass ??
+            competitionAgeClassFromDivision(
+              ageDivisionFromBirthDate(profile.birthDate)?.id,
+            )
+          }
           className="ui-input"
         >
           {(

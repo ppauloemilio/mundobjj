@@ -15,6 +15,7 @@ import { useLocale } from "@/components/locale-provider";
 import { ProfessorSelect } from "@/components/professor-select";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Switch } from "@/components/ui/switch";
+import { ageDivisionFromBirthDate } from "@/lib/age-category";
 import {
   adultBeltColors,
   formatWhatsappDisplay,
@@ -46,6 +47,7 @@ type ProfileValues = {
   weightKg: string | null;
   weightCategory?: string | null;
   avatarUrl?: string | null;
+  birthDate?: string | null;
   startedAt: string | null;
   whatsapp: string | null;
   contactEmail: string | null;
@@ -79,6 +81,7 @@ export function ProfileForm({
   const [weightCategory, setWeightCategory] = useState(
     profile.weightCategory ?? "",
   );
+  const [birthDate, setBirthDate] = useState(profile.birthDate ?? "");
   const [startedAt, setStartedAt] = useState(profile.startedAt ?? "");
   const [whatsapp, setWhatsapp] = useState(
     formatWhatsappDisplay(profile.whatsapp) || "",
@@ -256,6 +259,19 @@ export function ProfileForm({
                 size="md"
                 label={t(`belt_${belt}` as "belt_white")}
               />
+              {(() => {
+                const division = ageDivisionFromBirthDate(birthDate || null);
+                if (!division) return null;
+                return (
+                  <p className="max-w-[11rem] text-center text-[11px] leading-snug text-[var(--mute)]">
+                    <span className="font-semibold text-[var(--ink)]">
+                      {t(`ageDiv_${division.id}` as "ageDiv_ADULT")}
+                    </span>
+                    <br />
+                    {t("ageCategoryYears", { age: division.chronologicalAge })}
+                  </p>
+                );
+              })()}
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <label className="flex flex-col gap-1 text-[13px]">
@@ -431,6 +447,24 @@ export function ProfileForm({
               <option value="gi">{t("styleGi")}</option>
               <option value="nogi">{t("styleNogi")}</option>
             </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-[13px]">
+            {t("birthDate")}
+            <input
+              name="birthDate"
+              type="date"
+              value={birthDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(event) => {
+                setBirthDate(event.target.value);
+                markDirty();
+              }}
+              className="ui-input"
+            />
+            <span className="text-[11px] text-[var(--mute)]">
+              {t("birthDateHint")}
+            </span>
           </label>
 
           <label className="flex flex-col gap-1 text-[13px]">

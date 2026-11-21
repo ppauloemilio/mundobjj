@@ -233,6 +233,7 @@ export const profiles = pgTable("profiles", {
   style: trainingStyleEnum("style").notNull().default("both"),
   competitor: boolean("competitor").notNull().default(false),
   bio: text("bio"),
+  birthDate: date("birth_date"),
   startedAt: date("started_at"),
   whatsapp: text("whatsapp"),
   contactEmail: text("contact_email"),

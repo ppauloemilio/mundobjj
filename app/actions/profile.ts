@@ -42,6 +42,7 @@ const profileSchema = z.object({
   weightKg: z.string().trim(),
   weightCategory: z.string().trim(),
   avatarUrl: z.string().trim().max(400_000).optional().or(z.literal("")),
+  birthDate: z.string().trim(),
   startedAt: z.string().trim(),
   whatsapp: z.string().trim(),
   contactEmail: z.string().trim(),
@@ -91,6 +92,7 @@ export async function updateProfileAction(
       weightKg: formData.get("weightKg") || "",
       weightCategory: formData.get("weightCategory") || "",
       avatarUrl: formData.get("avatarUrl") || "",
+      birthDate: formData.get("birthDate") || "",
       startedAt: formData.get("startedAt") || "",
       whatsapp: formData.get("whatsapp") || "",
       contactEmail: formData.get("contactEmail") || "",
@@ -132,6 +134,22 @@ export async function updateProfileAction(
       return { error: "Data 'treina desde' inválida." };
     }
 
+    const birthDate = parsed.data.birthDate || null;
+    if (birthDate) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+        return { error: "Data de nascimento inválida." };
+      }
+      const birth = new Date(`${birthDate}T12:00:00`);
+      const today = new Date();
+      if (Number.isNaN(birth.getTime()) || birth > today) {
+        return { error: "Data de nascimento inválida." };
+      }
+      const year = Number(birthDate.slice(0, 4));
+      if (year < 1920 || today.getFullYear() - year > 120) {
+        return { error: "Data de nascimento inválida." };
+      }
+    }
+
     const avatarUrl = parsed.data.avatarUrl?.startsWith("data:image/")
       ? parsed.data.avatarUrl
       : parsed.data.avatarUrl || null;
@@ -170,6 +188,7 @@ export async function updateProfileAction(
         weightKg,
         weightCategory,
         avatarUrl,
+        birthDate,
         startedAt,
         whatsapp,
         contactEmail:

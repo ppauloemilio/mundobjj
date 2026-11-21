@@ -83,6 +83,7 @@ export default async function PainelPage() {
           weightKg: profile.weightKg,
           weightCategory: profile.weightCategory,
           avatarUrl: profile.avatarUrl,
+          birthDate: profile.birthDate,
           startedAt: profile.startedAt,
           whatsapp: profile.whatsapp,
           contactEmail: profile.contactEmail,
@@ -102,6 +103,7 @@ export default async function PainelPage() {
             profile={{
               belt: profile.belt,
               weightCategory: profile.weightCategory,
+              birthDate: profile.birthDate,
               name: profile.name,
               cityName: place?.cityName,
             }}

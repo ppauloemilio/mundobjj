@@ -89,6 +89,7 @@ export default async function AtletaPage({
         bio: profile.bio,
         avatarUrl: profile.avatarUrl,
         weightCategory: profile.weightCategory,
+        birthDate: profile.birthDate,
         startedAt: profile.startedAt,
         whatsapp: profile.whatsapp,
         contactEmail: profile.contactEmail,

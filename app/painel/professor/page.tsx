@@ -118,6 +118,7 @@ export default async function PainelProfessorPage() {
           competitor: profile.competitor,
           bio: profile.bio,
           weightKg: profile.weightKg,
+          birthDate: profile.birthDate,
           startedAt: profile.startedAt,
           whatsapp: profile.whatsapp,
           contactEmail: profile.contactEmail,
